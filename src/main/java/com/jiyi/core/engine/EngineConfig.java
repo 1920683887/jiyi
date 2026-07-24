@@ -18,16 +18,23 @@ public class EngineConfig {
         this.path = path;
     }
 
-    public String name() { return name; }
+    public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public String path() { return path; }
+    public String getPath() { return path; }
     public void setPath(String path) { this.path = path; }
-    public int threads() { return threads; }
+    public int getThreads() { return threads; }
     public void setThreads(int threads) { this.threads = threads; }
-    public int hash() { return hash; }
+    public int getHash() { return hash; }
     public void setHash(int hash) { this.hash = hash; }
-    public boolean ponder() { return ponder; }
+    public boolean isPonder() { return ponder; }
     public void setPonder(boolean ponder) { this.ponder = ponder; }
-    public Map<String, String> customOptions() { return customOptions; }
+    public Map<String, String> getCustomOptions() { return customOptions; }
     public void setCustomOptions(Map<String, String> customOptions) { this.customOptions = customOptions; }
+
+    public String name() { return name; }
+    public String path() { return path; }
+    public int threads() { return threads; }
+    public int hash() { return hash; }
+    public boolean ponder() { return ponder; }
+    public Map<String, String> customOptions() { return customOptions; }
 }

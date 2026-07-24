@@ -120,7 +120,6 @@
                                                     <Label fx:id="manualInfoLabel" />
                                                 </VBox>
                                             </bottom>
-                                            </bottom>
                                         </BorderPane>
                                     </Tab>
                                 </TabPane>

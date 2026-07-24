@@ -113,8 +113,11 @@ public class EngineService {
         long time = config.engine().analysisValue();
         if ("FIXED_TIME".equals(config.engine().analysisModel())) {
             if (protocol instanceof UciProtocol uci) uci.goTime(time);
+            else if (protocol instanceof UcciProtocol ucci) ucci.goTime(time);
         } else {
-            if (protocol instanceof UciProtocol uci) uci.goDepth((int) time);
+            int depth = (int) time;
+            if (protocol instanceof UciProtocol uci) uci.goDepth(depth);
+            else if (protocol instanceof UcciProtocol ucci) ucci.goDepth(depth);
         }
     }
 

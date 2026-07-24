@@ -75,7 +75,7 @@ public class MainController {
     private int currentScore;
     private boolean currentIsRed;
     private volatile boolean engineThinking;
-    private String lastEngineName;
+    private String engineSide = ""; // "red", "black", ""
 
     @FXML
     public void initialize() {
@@ -86,6 +86,9 @@ public class MainController {
             redrawBoard(e.board());
             turnLabel.setText("红方走棋");
             statusLabel.setText("新局");
+        }, EventBus.Dispatch.PLATFORM);
+        eventBus.register(GameEvent.BoardChanged.class, e -> {
+            redrawBoard(e.board());
         }, EventBus.Dispatch.PLATFORM);
         eventBus.register(GameEvent.GameEnded.class, e -> {
             statusLabel.setText("对局结束: " + e.result());
@@ -109,6 +112,11 @@ public class MainController {
         eventBus.register(EngineEvent.EngineStopped.class, e -> {
             engineThinking = false;
             statusLabel.setText("引擎已停止: " + e.name());
+        }, EventBus.Dispatch.PLATFORM);
+        eventBus.register(EngineEvent.BestMove.class, e -> {
+            if (e.move() != null && isEngineTurn()) {
+                gameService.executeMove(e.move());
+            }
         }, EventBus.Dispatch.PLATFORM);
 
         threadCombo.getItems().addAll(1, 2, 4, 8, 16);
@@ -182,7 +190,13 @@ public class MainController {
     public void onEngineRed() {
         var cfg = findSelectedEngine();
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
+        engineSide = "red";
         startEngine(cfg);
+        if (gameService.isRedToGo()) {
+            engineService.analyze(gameService.getCurrentBoard());
+        }
+        engineRedButton.setText("引擎红 ✓");
+        engineBlackButton.setText("引擎黑");
         statusLabel.setText("引擎执红");
     }
 
@@ -190,7 +204,13 @@ public class MainController {
     public void onEngineBlack() {
         var cfg = findSelectedEngine();
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
+        engineSide = "black";
         startEngine(cfg);
+        if (!gameService.isRedToGo()) {
+            engineService.analyze(gameService.getCurrentBoard());
+        }
+        engineBlackButton.setText("引擎黑 ✓");
+        engineRedButton.setText("引擎红");
         statusLabel.setText("引擎执黑");
     }
 
@@ -200,11 +220,24 @@ public class MainController {
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
         if (engineService.isRunning()) {
             engineService.stopEngine();
+            engineSide = "";
             analysisButton.setText("分析");
+            engineRedButton.setText("引擎红");
+            engineBlackButton.setText("引擎黑");
         } else {
+            engineSide = "all";
             startEngine(cfg);
+            engineService.analyze(gameService.getCurrentBoard());
             analysisButton.setText("停止");
         }
+    }
+
+    private boolean isEngineTurn() {
+        return switch (engineSide) {
+            case "red" -> gameService.isRedToGo();
+            case "black" -> !gameService.isRedToGo();
+            default -> false;
+        };
     }
 
     @FXML
@@ -412,7 +445,7 @@ public class MainController {
         recordTable.getItems().add(event.move().toUci());
         recordTable.scrollTo(recordTable.getItems().size() - 1);
         turnLabel.setText(event.isRed() ? "黑方走棋" : "红方走棋");
-        if (engineService.isRunning()) {
+        if (engineService.isRunning() && isEngineTurn()) {
             engineService.analyze(event.board());
         }
     }
