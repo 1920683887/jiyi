@@ -14,6 +14,7 @@ import com.jiyi.infra.config.ConfigManager;
 import com.jiyi.infra.util.WinRateCalculator;
 import com.jiyi.service.EngineService;
 import com.jiyi.service.GameService;
+import com.jiyi.service.BookService;
 import com.jiyi.service.ManualService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -39,6 +40,7 @@ public class MainController {
     @Inject private GameService gameService;
     @Inject private EngineService engineService;
     @Inject private ManualService manualService;
+    @Inject private BookService bookService;
     @Inject private Config config;
     @Inject private ConfigManager configManager;
 
@@ -56,6 +58,7 @@ public class MainController {
     @FXML private Button playBtn;
     @FXML private Button pauseBtn;
     @FXML private Label manualInfoLabel;
+    @FXML private TableView<String> bookTable;
     @FXML private Label statusLabel;
     @FXML private Label turnLabel;
     @FXML private Label winRateLabel;

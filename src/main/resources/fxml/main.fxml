@@ -64,6 +64,21 @@
                             </AnchorPane>
                             <AnchorPane>
                                 <TabPane tabClosingPolicy="UNAVAILABLE">
+                                    <Tab text="库招">
+                                        <BorderPane>
+                                            <center>
+                                                <TableView fx:id="bookTable">
+                                                    <columns>
+                                                        <TableColumn prefWidth="75.0" text="招法" />
+                                                        <TableColumn prefWidth="60.0" text="分数" />
+                                                        <TableColumn prefWidth="60.0" text="胜率" />
+                                                        <TableColumn prefWidth="80.0" text="备注" />
+                                                        <TableColumn prefWidth="70.0" text="来源" />
+                                                    </columns>
+                                                </TableView>
+                                            </center>
+                                        </BorderPane>
+                                    </Tab>
                                     <Tab text="棋谱">
                                         <BorderPane>
                                             <center>
