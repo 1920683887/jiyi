@@ -109,6 +109,8 @@ public class EngineService {
     public void analyze(Board board) {
         if (!running || protocol == null) return;
         currentMoves.clear();
+        // Stop any ongoing search before sending new position + go
+        stopSearch();
         sendPosition(board);
         long time = config.engine().analysisValue();
         if ("FIXED_TIME".equals(config.engine().analysisModel())) {
@@ -119,6 +121,11 @@ public class EngineService {
             if (protocol instanceof UciProtocol uci) uci.goDepth(depth);
             else if (protocol instanceof UcciProtocol ucci) ucci.goDepth(depth);
         }
+    }
+
+    private void stopSearch() {
+        if (protocol instanceof UciProtocol uci) uci.stop();
+        else if (protocol instanceof UcciProtocol ucci) ucci.stop();
     }
 
     private void sendPosition(Board board) {

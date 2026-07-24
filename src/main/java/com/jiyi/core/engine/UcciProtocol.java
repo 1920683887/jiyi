@@ -63,7 +63,7 @@ public class UcciProtocol {
             }
         } else if (line.startsWith("bestmove")) {
             String[] parts = line.split("\\s+");
-            if (parts.length >= 2) {
+            if (parts.length >= 2 && outputCallback != null) {
                 outputCallback.accept(new EngineOutput.BestMove(parts[1]));
             }
         }
@@ -71,7 +71,7 @@ public class UcciProtocol {
 
     private EngineOutput parseInfo(String line) {
         try {
-            int depth = 0, score = 0, pv = 1;
+            int depth = 0, score = 0, mate = 0, pv = 1;
             long time = 0, nps = 0;
             boolean isMate = false;
 
@@ -80,13 +80,16 @@ public class UcciProtocol {
                 switch (tokens[i]) {
                     case "depth" -> depth = Integer.parseInt(tokens[++i]);
                     case "score" -> {
-                        if ("cp".equals(tokens[i + 1])) {
-                            score = Integer.parseInt(tokens[++i]);
-                            ++i;
-                        } else if ("mate".equals(tokens[i + 1])) {
-                            score = Integer.parseInt(tokens[++i]);
+                        ++i; // skip to the sub-token (cp/mate)
+                        if (i >= tokens.length) break;
+                        if ("cp".equals(tokens[i])) {
+                            if (++i < tokens.length) score = Integer.parseInt(tokens[i]);
+                        } else if ("mate".equals(tokens[i])) {
                             isMate = true;
-                            ++i;
+                            if (++i < tokens.length) {
+                                mate = Integer.parseInt(tokens[i]);
+                                score = mate;
+                            }
                         }
                     }
                     case "time" -> time = Long.parseLong(tokens[++i]);

@@ -76,9 +76,14 @@ public class MainController {
     private boolean currentIsRed;
     private volatile boolean engineThinking;
     private String engineSide = ""; // "red", "black", ""
+    private boolean initialized;
 
     @FXML
     public void initialize() {
+        // Prevent double initialization (called by FXMLLoader AND by App.start)
+        if (initialized) return;
+        initialized = true;
+
         eventBus.register(GameEvent.MoveExecuted.class, this::onMoveExecuted, EventBus.Dispatch.PLATFORM);
         eventBus.register(GameEvent.GameStarted.class, e -> {
             recordTable.getItems().clear();
@@ -132,8 +137,13 @@ public class MainController {
 
     public void initialize(Stage stage) {
         this.stage = stage;
-        initialize();
+        initAccelerators(stage);
+        log.info("极弈 started");
+    }
+
+    private void initAccelerators(Stage stage) {
         var scene = stage.getScene();
+        if (scene == null) return;
         scene.getAccelerators().put(
             new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.Z,
                 javafx.scene.input.KeyCombination.CONTROL_DOWN), () -> gameService.undo());
@@ -142,7 +152,6 @@ public class MainController {
                 javafx.scene.input.KeyCombination.CONTROL_DOWN), () -> gameService.startNewGame());
         scene.getAccelerators().put(
             new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F5), this::flipBoard);
-        log.info("极弈 started");
     }
 
     private void refreshEngineList() {
@@ -365,7 +374,6 @@ public class MainController {
         cfg.setThreads(threadCombo.getValue());
         cfg.setHash(hashCombo.getValue());
         engineService.startEngine(cfg);
-        engineService.analyze(gameService.getCurrentBoard());
     }
 
     @FXML
@@ -570,7 +578,7 @@ public class MainController {
             }) {
                 double sx = padding + pos[1] * cellW;
                 double sy = padding + pos[0] * cellH;
-                gc.setStroke(Color.rgb(200, 50, 50, 180));
+                gc.setStroke(Color.rgb(200, 50, 50, 0.7));
                 gc.setLineWidth(2.5);
                 gc.strokeOval(sx - pieceR - 3, sy - pieceR - 3, (pieceR + 3) * 2, (pieceR + 3) * 2);
             }

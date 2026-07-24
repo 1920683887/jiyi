@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class EngineProcess implements AutoCloseable {
@@ -16,7 +17,7 @@ public class EngineProcess implements AutoCloseable {
     private volatile boolean running;
 
     public EngineProcess(String command) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder(command.split("\\s+"));
+        ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
         this.process = pb.start();
         this.reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -24,26 +25,28 @@ public class EngineProcess implements AutoCloseable {
         this.running = true;
     }
 
-    public void send(String command) {
+    public void send(String cmd) {
         try {
-            writer.write(command + "\n");
+            writer.write(cmd + "\n");
             writer.flush();
-            log.debug("-> {}", command);
+            log.debug("-> {}", cmd);
         } catch (IOException e) {
-            log.error("Failed to send command: {}", command, e);
+            log.error("Failed to send: {}", cmd, e);
         }
     }
 
     public String readLine(long timeoutMs) {
         var future = CompletableFuture.supplyAsync(() -> {
             try {
-                return reader.readLine();
+                String line = reader.readLine();
+                if (line != null) log.debug("<- {}", line);
+                return line;
             } catch (IOException e) {
                 return null;
             }
         });
         try {
-            return future.get(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+            return future.get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             future.cancel(true);
             return null;
@@ -56,7 +59,11 @@ public class EngineProcess implements AutoCloseable {
                 String line;
                 while (running && (line = reader.readLine()) != null) {
                     log.debug("<- {}", line);
-                    callback.accept(line);
+                    try {
+                        callback.accept(line);
+                    } catch (Exception e) {
+                        log.warn("Callback error", e);
+                    }
                 }
             } catch (IOException e) {
                 if (running) log.error("Engine reader error", e);
