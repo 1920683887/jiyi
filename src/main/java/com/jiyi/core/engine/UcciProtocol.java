@@ -16,7 +16,7 @@ public class UcciProtocol {
 
     public UcciProtocol(EngineProcess proc) {
         this.proc = proc;
-        proc.startReading(this::parseLine);
+        proc.addCallback(this::parseLine);
     }
 
     public void setOutputCallback(Consumer<EngineOutput> callback) {

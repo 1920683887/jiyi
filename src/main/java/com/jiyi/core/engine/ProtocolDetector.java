@@ -9,25 +9,34 @@ public class ProtocolDetector {
     public enum Protocol { UCI, UCCI, UNKNOWN }
 
     public Protocol detect(EngineProcess proc) {
+        var result = new Protocol[1];
+
+        proc.addCallback(line -> {
+            if (line.contains("uciok")) result[0] = Protocol.UCI;
+            if (line.contains("ucciok")) result[0] = Protocol.UCCI;
+        });
+
         proc.send("uci");
-        for (int i = 0; i < 50; i++) {
-            String line = proc.readLine(200);
-            if (line == null) break;
-            if (line.contains("uciok")) {
-                log.info("Detected UCI protocol");
-                return Protocol.UCI;
-            }
+        if (pollResult(result)) {
+            log.info("Detected {}", result[0]);
+            return result[0];
         }
+
         proc.send("ucci");
-        for (int i = 0; i < 50; i++) {
-            String line = proc.readLine(200);
-            if (line == null) break;
-            if (line.contains("ucciok")) {
-                log.info("Detected UCCI protocol");
-                return Protocol.UCCI;
-            }
+        if (pollResult(result)) {
+            log.info("Detected {}", result[0]);
+            return result[0];
         }
-        log.warn("Could not detect engine protocol");
+
+        log.warn("Unknown engine protocol");
         return Protocol.UNKNOWN;
+    }
+
+    private boolean pollResult(Protocol[] result) {
+        for (int i = 0; i < 30; i++) {
+            if (result[0] != null) return true;
+            try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+        }
+        return false;
     }
 }
