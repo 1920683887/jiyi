@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane fx:id="root" prefHeight="712.0" prefWidth="1169.0"
+            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.jiyi.ui.controller.MainController">
+    <top>
+        <MenuBar>
+            <Menu text="文件">
+                <MenuItem text="新局面" onAction="#newGame" />
+                <MenuItem text="退出" onAction="#exit" />
+            </Menu>
+            <Menu text="局面">
+                <MenuItem text="复制FEN" onAction="#copyFen" />
+                <MenuItem text="粘贴FEN" onAction="#pasteFen" />
+            </Menu>
+            <Menu text="引擎">
+                <MenuItem text="引擎管理" onAction="#onEngineManage" />
+            </Menu>
+        </MenuBar>
+    </top>
+    <center>
+        <BorderPane>
+            <top>
+                <ToolBar prefHeight="30.0">
+                    <Button text="新局" onAction="#newGame" />
+                    <Button text="悔棋" onAction="#undoGame" />
+                    <Button fx:id="flipButton" text="翻转" onAction="#flipBoard" />
+                    <Separator orientation="VERTICAL" />
+                    <Button text="复制" onAction="#copyFen" />
+                    <Button text="粘贴" onAction="#pasteFen" />
+                    <Separator orientation="VERTICAL" />
+                    <Button fx:id="engineRedButton" text="引擎红" onAction="#onEngineRed" />
+                    <Button fx:id="engineBlackButton" text="引擎黑" onAction="#onEngineBlack" />
+                    <Button fx:id="analysisButton" text="分析" onAction="#onAnalysis" />
+                </ToolBar>
+            </top>
+            <center>
+                <SplitPane fx:id="splitPane" dividerPositions="0.642">
+                    <AnchorPane>
+                        <Canvas fx:id="boardCanvas" width="586.0" height="650.0"
+                                onMouseClicked="#onCanvasClicked" />
+                    </AnchorPane>
+                    <AnchorPane>
+                        <SplitPane orientation="VERTICAL" dividerPositions="0.646">
+                            <AnchorPane>
+                                <BorderPane>
+                                    <top>
+                                        <ToolBar>
+                                            <Label text="引擎" />
+                                            <ComboBox fx:id="engineCombo" prefWidth="95.0" />
+                                            <ComboBox fx:id="threadCombo" prefWidth="60.0" />
+                                            <ComboBox fx:id="hashCombo" prefWidth="65.0" />
+                                            <Label text="MB" />
+                                        </ToolBar>
+                                    </top>
+                                    <center>
+                                        <ListView fx:id="engineOutput" />
+                                    </center>
+                                </BorderPane>
+                            </AnchorPane>
+                            <AnchorPane>
+                                <TabPane tabClosingPolicy="UNAVAILABLE">
+                                    <Tab text="棋谱">
+                                        <BorderPane>
+                                            <center>
+                                                <TableView fx:id="recordTable">
+                                                    <columns>
+                                                        <TableColumn prefWidth="50.0" text="序号" />
+                                                        <TableColumn prefWidth="95.0" text="着法" />
+                                                        <TableColumn prefWidth="60.0" text="分数" />
+                                                    </columns>
+                                                </TableView>
+                                            </center>
+                                            <right>
+                                                <VBox spacing="4" prefWidth="220">
+                                                    <Label text="注解:" />
+                                                    <TextArea fx:id="remarkText" prefHeight="80" wrapText="true" />
+                                                    <HBox spacing="4">
+                                                        <Button fx:id="tag1Btn" />
+                                                        <Button fx:id="tag2Btn" />
+                                                        <Button fx:id="tag3Btn" />
+                                                        <Button fx:id="tag4Btn" />
+                                                    </HBox>
+                                                </VBox>
+                                            </right>
+                                            <bottom>
+                                                <ToolBar>
+                                                    <Button text="首" onAction="#onManualFirst" />
+                                                    <Button text="前" onAction="#onManualPrev" />
+                                                    <Button text="后" onAction="#onManualNext" />
+                                                    <Button text="末" onAction="#onManualLast" />
+                                                    <Separator orientation="VERTICAL" />
+                                                    <Button fx:id="playBtn" text="播放" onAction="#onManualPlay" />
+                                                    <Button fx:id="pauseBtn" text="暂停" onAction="#onManualPause" disable="true" />
+                                                    <Separator orientation="VERTICAL" />
+                                                    <Button text="删除" onAction="#onManualDelete" />
+                                                    <Button text="打开" onAction="#onManualOpen" />
+                                                    <Button text="保存" onAction="#onManualSave" />
+                                                </ToolBar>
+                                                <VBox>
+                                                    <Label fx:id="manualInfoLabel" />
+                                                </VBox>
+                                            </bottom>
+                                            </bottom>
+                                        </BorderPane>
+                                    </Tab>
+                                </TabPane>
+                            </AnchorPane>
+                        </SplitPane>
+                    </AnchorPane>
+                </SplitPane>
+            </center>
+            <bottom>
+                <ToolBar prefHeight="27.0">
+                    <Label fx:id="statusLabel" />
+                    <Separator orientation="VERTICAL" />
+                    <Label fx:id="turnLabel" />
+                    <Separator orientation="VERTICAL" />
+                    <Label text="胜率:" />
+                    <Label fx:id="winRateLabel" />
+                </ToolBar>
+            </bottom>
+        </BorderPane>
+    </center>
+</BorderPane>

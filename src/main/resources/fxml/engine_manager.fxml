@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane prefWidth="500.0" prefHeight="400.0"
+            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.jiyi.ui.controller.EngineManagerController">
+    <top>
+        <ToolBar>
+            <Button text="添加引擎" onAction="#onAdd" />
+            <Button text="删除引擎" onAction="#onDelete" />
+            <Button text="设为默认" onAction="#onSetDefault" />
+        </ToolBar>
+    </top>
+    <center>
+        <TableView fx:id="engineTable" editable="false">
+            <columns>
+                <TableColumn prefWidth="30.0" text="" fx:id="defaultCol" />
+                <TableColumn prefWidth="120.0" text="名称" fx:id="nameCol" />
+                <TableColumn prefWidth="280.0" text="路径" fx:id="pathCol" />
+                <TableColumn prefWidth="50.0" text="线程" fx:id="threadCol" />
+            </columns>
+        </TableView>
+    </center>
+    <bottom>
+        <ToolBar>
+            <Label fx:id="statusLabel" />
+        </ToolBar>
+    </bottom>
+</BorderPane>

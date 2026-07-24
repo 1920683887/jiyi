@@ -1,0 +1,48 @@
+.root {
+    -fx-font-family: "Microsoft YaHei", "SimSun", sans-serif;
+    -fx-font-size: 12px;
+}
+
+.menu-bar {
+    -fx-background-color: #f0f0f0;
+    -fx-padding: 2px;
+}
+
+.tool-bar {
+    -fx-background-color: #f8f8f8;
+    -fx-padding: 4px;
+    -fx-spacing: 4px;
+}
+
+.split-pane {
+    -fx-background-color: #e8e8e8;
+}
+
+.table-view {
+    -fx-font-size: 11px;
+}
+
+.list-view {
+    -fx-font-size: 11px;
+}
+
+.text-area {
+    -fx-font-size: 11px;
+}
+
+.tab-pane {
+    -fx-background-color: white;
+}
+
+.button {
+    -fx-font-size: 11px;
+    -fx-padding: 4px 8px;
+}
+
+.combo-box {
+    -fx-font-size: 11px;
+}
+
+.label {
+    -fx-font-size: 11px;
+}

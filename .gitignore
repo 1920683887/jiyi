@@ -1,0 +1,7 @@
+target/
+*.class
+*.log
+logs/
+config.json
+license.dat
+!.mvn/wrapper/maven-wrapper.jar
