@@ -36,6 +36,11 @@
                     <Button fx:id="engineRedButton" text="引擎红" onAction="#onEngineRed" />
                     <Button fx:id="engineBlackButton" text="引擎黑" onAction="#onEngineBlack" />
                     <Button fx:id="analysisButton" text="分析" onAction="#onAnalysis" />
+                    <Separator orientation="VERTICAL" />
+                    <Button fx:id="linkWindowBtn" text="选窗口" onAction="#onLinkSelectWindow" />
+                    <Button fx:id="linkStartBtn" text="连线" onAction="#onLinkStart" disable="true" />
+                    <Button fx:id="linkStopBtn" text="停止" onAction="#onLinkStop" disable="true" />
+                    <Label fx:id="linkStatusLabel" text="未连线" />
                 </ToolBar>
             </top>
             <center>

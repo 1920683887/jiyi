@@ -15,9 +15,11 @@ import com.jiyi.infra.config.Config;
 import com.jiyi.infra.config.ConfigManager;
 import com.jiyi.infra.platform.Platform;
 import com.jiyi.infra.platform.WindowsPlatform;
+import com.jiyi.service.AutomationService;
+import com.jiyi.service.BookService;
+import com.jiyi.service.DetectionService;
 import com.jiyi.service.EngineService;
 import com.jiyi.service.GameService;
-import com.jiyi.service.BookService;
 import com.jiyi.service.ManualService;
 
 public class AppModule extends AbstractModule {
@@ -36,6 +38,8 @@ public class AppModule extends AbstractModule {
         bind(EngineService.class).in(Singleton.class);
         bind(ManualService.class).in(Singleton.class);
         bind(BookService.class).in(Singleton.class);
+        bind(DetectionService.class).in(Singleton.class);
+        bind(AutomationService.class).in(Singleton.class);
     }
 
     public static Injector createInjector() {

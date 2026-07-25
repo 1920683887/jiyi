@@ -66,9 +66,9 @@
 
         <!-- JNativeHook -->
         <dependency>
-            <groupId>com.1stleg</groupId>
+            <groupId>com.github.kwhat</groupId>
             <artifactId>jnativehook</artifactId>
-            <version>${jnativehook.version}</version>
+            <version>2.2.2</version>
         </dependency>
 
         <!-- SQLite -->

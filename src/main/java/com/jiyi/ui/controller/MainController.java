@@ -14,7 +14,10 @@ import com.jiyi.infra.config.ConfigManager;
 import com.jiyi.infra.util.WinRateCalculator;
 import com.jiyi.service.EngineService;
 import com.jiyi.service.GameService;
+import com.jiyi.infra.platform.WindowsPlatform;
+import com.jiyi.service.AutomationService;
 import com.jiyi.service.BookService;
+import com.jiyi.service.DetectionService;
 import com.jiyi.service.ManualService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -56,6 +59,8 @@ public class MainController {
     @Inject private EngineService engineService;
     @Inject private ManualService manualService;
     @Inject private BookService bookService;
+    @Inject private DetectionService detectionService;
+    @Inject private AutomationService automationService;
     @Inject private Config config;
     @Inject private ConfigManager configManager;
 
@@ -87,7 +92,12 @@ public class MainController {
     @FXML private Button engineBlackButton;
     @FXML private Button analysisButton;
     @FXML private Button flipButton;
+    @FXML private Button linkWindowBtn;
+    @FXML private Button linkStartBtn;
+    @FXML private Button linkStopBtn;
+    @FXML private Label linkStatusLabel;
 
+    private volatile long linkWindowHwnd;
     private Stage stage;
     private int selectedRow = -1, selectedCol = -1;
     private Move lastMove;
@@ -300,6 +310,47 @@ public class MainController {
             case "black" -> !gameService.isRedToGo();
             default -> false;
         };
+    }
+
+    @FXML
+    public void onLinkSelectWindow() {
+        linkStatusLabel.setText("请点击目标窗口...");
+        var wp = (WindowsPlatform) com.jiyi.di.AppModule.getInjector()
+            .getInstance(com.jiyi.infra.platform.Platform.class);
+        wp.startWindowSelection(hwnd -> {
+            linkWindowHwnd = hwnd;
+            javafx.application.Platform.runLater(() -> {
+                linkStatusLabel.setText("已选窗口: 0x" + Long.toHexString(hwnd));
+                linkStartBtn.setDisable(false);
+                linkWindowBtn.setDisable(true);
+            });
+        });
+    }
+
+    @FXML
+    public void onLinkStart() {
+        if (linkWindowHwnd == 0) return;
+        if (!detectionService.start(linkWindowHwnd)) {
+            linkStatusLabel.setText("检测启动失败（模型未加载）");
+            return;
+        }
+        automationService.start(false, false);
+        linkStartBtn.setDisable(true);
+        linkStopBtn.setDisable(false);
+        linkWindowBtn.setDisable(true);
+        linkStatusLabel.setText("连线中...");
+        statusLabel.setText("连线模式已启动");
+    }
+
+    @FXML
+    public void onLinkStop() {
+        detectionService.stop();
+        automationService.stop();
+        linkStartBtn.setDisable(false);
+        linkStopBtn.setDisable(true);
+        linkWindowBtn.setDisable(false);
+        linkStatusLabel.setText("连线已停止");
+        statusLabel.setText("");
     }
 
     @FXML

@@ -1,5 +1,8 @@
 package com.jiyi.infra.platform;
 
+import com.sun.jna.Memory;
+import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,19 +12,72 @@ import java.awt.image.BufferedImage;
 
 public class WindowsPlatform implements Platform {
     private static final Logger log = LoggerFactory.getLogger(WindowsPlatform.class);
+
     private final Robot robot;
+    private final double screenScalingFactor;
+    private boolean needScaling;
+    private long currentHwnd;
+    private GlobalMouseListener globalMouse;
+    private java.util.function.Consumer<Long> windowCallback;
 
     public WindowsPlatform() {
         try {
             this.robot = new Robot();
         } catch (AWTException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Robot init failed", e);
         }
+        var ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        this.screenScalingFactor = ge.getDefaultScreenDevice()
+            .getDefaultConfiguration().getDefaultTransform().getScaleX();
     }
 
     @Override
     public BufferedImage captureWindow(long hwnd, Rectangle rect) {
-        return captureScreen(rect);
+        var hWnd = new WinDef.HWND(new Pointer(hwnd));
+        var hdc = User32.INSTANCE.GetDC(hWnd);
+        var memDC = GDI32.INSTANCE.CreateCompatibleDC(hdc);
+        try {
+            var bounds = new WinDef.RECT();
+            User32.INSTANCE.GetClientRect(hWnd, bounds);
+            int w = bounds.right - bounds.left;
+            int h = bounds.bottom - bounds.top;
+            if (needScaling) { w /= (int) screenScalingFactor; h /= (int) screenScalingFactor; }
+
+            var hBitmap = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, w, h);
+            var old = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
+            User32.INSTANCE.PrintWindow(hWnd, memDC, 0x1 | 0x2);
+
+            var image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+            var bmi = new WinGDI.BITMAPINFO();
+            bmi.bmiHeader.biWidth = w;
+            bmi.bmiHeader.biHeight = -h;
+            bmi.bmiHeader.biPlanes = 1;
+            bmi.bmiHeader.biBitCount = 32;
+            bmi.bmiHeader.biCompression = WinGDI.BI_RGB;
+
+            var buffer = new Memory(w * h * 4L);
+            GDI32.INSTANCE.GetDIBits(memDC, hBitmap, 0, h, buffer, bmi, WinGDI.DIB_RGB_COLORS);
+            var data = buffer.getIntArray(0, w * h);
+            image.setRGB(0, 0, w, h, data, 0, w);
+
+            GDI32.INSTANCE.SelectObject(memDC, old);
+            GDI32.INSTANCE.DeleteObject(hBitmap);
+
+            if (rect != null) {
+                int rx = needScaling ? rect.x / (int) screenScalingFactor : rect.x;
+                int ry = needScaling ? rect.y / (int) screenScalingFactor : rect.y;
+                int rw = needScaling ? rect.width / (int) screenScalingFactor : rect.width;
+                int rh = needScaling ? rect.height / (int) screenScalingFactor : rect.height;
+                image = image.getSubimage(rx, ry, rw, rh);
+            }
+            return image;
+        } catch (Exception e) {
+            log.warn("PrintWindow failed, fallback to Robot", e);
+            return captureScreen(rect);
+        } finally {
+            GDI32.INSTANCE.DeleteDC(memDC);
+            User32.INSTANCE.ReleaseDC(hWnd, hdc);
+        }
     }
 
     @Override
@@ -31,28 +87,89 @@ public class WindowsPlatform implements Platform {
 
     @Override
     public void mouseClick(Point from, Point to, ClickMode mode) {
-        int x = to.x;
-        int y = to.y;
-        if (from != null) {
-            robot.mouseMove(from.x, from.y);
-            robot.delay(10);
+        if (mode == ClickMode.BACK && currentHwnd != 0) {
+            var hWnd = new WinDef.HWND(new Pointer(currentHwnd));
+            if (needScaling) {
+                from = new Point((int)(from.x * screenScalingFactor), (int)(from.y * screenScalingFactor));
+                to = new Point((int)(to.x * screenScalingFactor), (int)(to.y * screenScalingFactor));
+            }
+            sendClick(hWnd, from.x, from.y);
+            sendClick(hWnd, to.x, to.y);
+        } else {
+            if (from != null) { robot.mouseMove(from.x, from.y); robot.delay(10); }
+            robot.mouseMove(to.x, to.y);
+            robot.delay(2);
+            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+            robot.delay(2);
+            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
         }
-        robot.mouseMove(x, y);
-        robot.delay(2);
-        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-        robot.delay(2);
-        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+    }
+
+    private void sendClick(WinDef.HWND hWnd, int x, int y) {
+        var lParam = new WinDef.LPARAM((y << 16) | (x & 0xFFFF));
+        User32.INSTANCE.PostMessage(hWnd, 0x0200, new WinDef.WPARAM(1), lParam);
+        User32.INSTANCE.PostMessage(hWnd, 0x0201, new WinDef.WPARAM(1), lParam);
+        User32.INSTANCE.PostMessage(hWnd, 0x0202, new WinDef.WPARAM(0), lParam);
     }
 
     @Override
-    public long getWindowFromPoint(Point screenPoint) {
-        return 0;
+    public long getWindowFromPoint(Point p) {
+        var pt = new WinDef.POINT(p.x, p.y);
+        var hWnd = User32Extra.INSTANCE.WindowFromPoint(pt);
+        return Pointer.nativeValue(hWnd.getPointer());
     }
 
     @Override
     public double getDpiScale(long hwnd) {
-        return Toolkit.getDefaultToolkit().getScreenResolution() / 96.0;
+        int sysDpi = User32Extra.INSTANCE.GetDpiForSystem();
+        var hWnd = new WinDef.HWND(new Pointer(hwnd));
+        int winDpi = User32Extra.INSTANCE.GetDpiForWindow(hWnd);
+        this.needScaling = sysDpi != winDpi;
+        return sysDpi / 96.0;
     }
+
+    // Window selection — 启动全局鼠标钩子
+    public void startWindowSelection(java.util.function.Consumer<Long> onSelected) {
+        this.windowCallback = onSelected;
+        try {
+            selectCrossCursor();
+            globalMouse = new GlobalMouseListener(e -> {
+                try {
+                    var pt = new WinDef.POINT(e.getX(), e.getY());
+                    var hWnd = User32Extra.INSTANCE.WindowFromPoint(pt);
+                    long hwnd = Pointer.nativeValue(hWnd.getPointer());
+                    getDpiScale(hwnd);
+                    currentHwnd = hwnd;
+                    restoreCursor();
+                    if (windowCallback != null) windowCallback.accept(hwnd);
+                } catch (Exception ex) {
+                    log.warn("Window selection failed", ex);
+                }
+            });
+            globalMouse.start();
+        } catch (Exception e) {
+            log.warn("Native hook failed", e);
+            restoreCursor();
+        }
+    }
+
+    private void selectCrossCursor() {
+        try {
+            // Use built-in crosshair cursor
+            var hc = User32Extra.INSTANCE.LoadCursorFromFileA("D:\\极弈\\projects\\ji-yi-java\\circle.ico");
+            if (hc != null) {
+                User32Extra.INSTANCE.SetSystemCursor(hc, new WinDef.DWORD(32512));
+            }
+        } catch (Exception e) {
+            log.debug("Custom cursor not found, using default");
+        }
+    }
+
+    private void restoreCursor() {
+        User32Extra.INSTANCE.SystemParametersInfoA(0x57, 0, 0, 2);
+    }
+
+    public long getCurrentHwnd() { return currentHwnd; }
 
     @Override
     public boolean isWindows() { return true; }
