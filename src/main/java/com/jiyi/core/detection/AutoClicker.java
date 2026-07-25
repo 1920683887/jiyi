@@ -49,11 +49,14 @@ public class AutoClicker {
         var r = lastBoardRect;
         int fr = flipped ? 9 - row : row;
         int fc = flipped ? 8 - col : col;
-        double cellW = r.width / 9.0;
-        double cellH = r.height / 10.0;
-        return new Point(
-            r.x + (int) (fc * cellW + cellW / 2),
-            r.y + (int) (fr * cellH + cellH / 2)
-        );
+        double cellW = r.width / 9.6;
+        double cellH = r.height / 10.6;
+        double px = r.x + 0.8 * cellW + fc * cellW + cellW / 2;
+        double py = r.y + 0.8 * cellH + fr * cellH + cellH / 2;
+        if (fc == 0) px += 0.2 * cellW;
+        else if (fc == 8) px -= 0.2 * cellW;
+        if (fr == 0) py += 0.2 * cellH;
+        else if (fr == 9) py -= 0.2 * cellH;
+        return new Point((int) px, (int) py);
     }
 }

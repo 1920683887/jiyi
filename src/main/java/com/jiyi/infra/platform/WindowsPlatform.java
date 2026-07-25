@@ -41,7 +41,7 @@ public class WindowsPlatform implements Platform {
             User32.INSTANCE.GetClientRect(hWnd, bounds);
             int w = bounds.right - bounds.left;
             int h = bounds.bottom - bounds.top;
-            if (needScaling) { w /= (int) screenScalingFactor; h /= (int) screenScalingFactor; }
+            if (needScaling) { w = (int)(w / screenScalingFactor); h = (int)(h / screenScalingFactor); }
 
             var hBitmap = GDI32.INSTANCE.CreateCompatibleBitmap(hdc, w, h);
             var old = GDI32.INSTANCE.SelectObject(memDC, hBitmap);
@@ -64,10 +64,10 @@ public class WindowsPlatform implements Platform {
             GDI32.INSTANCE.DeleteObject(hBitmap);
 
             if (rect != null) {
-                int rx = needScaling ? rect.x / (int) screenScalingFactor : rect.x;
-                int ry = needScaling ? rect.y / (int) screenScalingFactor : rect.y;
-                int rw = needScaling ? rect.width / (int) screenScalingFactor : rect.width;
-                int rh = needScaling ? rect.height / (int) screenScalingFactor : rect.height;
+                int rx = needScaling ? (int)(rect.x / screenScalingFactor) : rect.x;
+                int ry = needScaling ? (int)(rect.y / screenScalingFactor) : rect.y;
+                int rw = needScaling ? (int)(rect.width / screenScalingFactor) : rect.width;
+                int rh = needScaling ? (int)(rect.height / screenScalingFactor) : rect.height;
                 image = image.getSubimage(rx, ry, rw, rh);
             }
             return image;

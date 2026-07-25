@@ -128,13 +128,14 @@ public class YoloDetector implements AutoCloseable {
             boxes.removeIf(b -> iou(first.rect(), b.rect()) > NMS_THRESH);
         }
 
-        // Expand board rect with padding
+        // Expand board rect with padding (TCHESS-compatible: per-axis)
         if (boardRect != null) {
-            int pad = (int)(Math.min(boardRect.width, boardRect.height) * BOARD_PADDING);
-            boardRect.x = Math.max(0, boardRect.x - pad);
-            boardRect.y = Math.max(0, boardRect.y - pad);
-            boardRect.width = Math.min(iw, boardRect.width + pad * 2) - boardRect.x;
-            boardRect.height = Math.min(ih, boardRect.height + pad * 2) - boardRect.y;
+            int padX = (int)(boardRect.width / 8.0 * BOARD_PADDING);
+            int padY = (int)(boardRect.height / 9.0 * BOARD_PADDING);
+            boardRect.x = Math.max(0, boardRect.x - padX);
+            boardRect.y = Math.max(0, boardRect.y - padY);
+            boardRect.width = Math.min(iw, boardRect.width + padX * 2) - boardRect.x;
+            boardRect.height = Math.min(ih, boardRect.height + padY * 2) - boardRect.y;
         }
 
         return new DetectionResult(boardRect, kept);

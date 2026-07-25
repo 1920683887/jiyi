@@ -15,18 +15,19 @@ public class BoardMatcher {
         if (det.boardRect() == null) return null;
 
         var rect = det.boardRect();
-        double cellW = (double) rect.width / COLS;
-        double cellH = (double) rect.height / ROWS;
 
         char[][] chars = new char[ROWS][COLS];
         for (int r = 0; r < ROWS; r++)
             Arrays.fill(chars[r], ' ');
 
+        double cellW = (double) rect.width / 9.6;
+        double cellH = (double) rect.height / 10.6;
+
         for (var piece : det.pieces()) {
             double cx = piece.rect().getCenterX();
             double cy = piece.rect().getCenterY();
-            int col = (int) Math.round((cx - rect.x) / cellW);
-            int row = (int) Math.round((cy - rect.y) / cellH);
+            int col = (int) Math.round((cx - rect.x - 0.8 * cellW) / cellW);
+            int row = (int) Math.round((cy - rect.y - 0.8 * cellH) / cellH);
             if (col < 0 || col >= COLS || row < 0 || row >= ROWS) continue;
 
             char existing = chars[row][col];

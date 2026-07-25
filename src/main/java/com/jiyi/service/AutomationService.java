@@ -74,8 +74,7 @@ public class AutomationService {
                 log.debug("Opponent moved: {}", diff.diff());
                 referenceBoard = board;
                 if (engineService.isRunning()) {
-                    boolean redGo = engineIsRed ? flipped : !flipped;
-                    engineService.analyze(board, !engineIsRed);
+                    engineService.analyze(board, engineIsRed);
                 }
                 break;
 
@@ -85,15 +84,12 @@ public class AutomationService {
                     referenceBoard = board;
                     break;
                 }
-                // needConfirm for rook/cannon
                 if (diff.diff() != null && comparator.needConfirm(board, referenceBoard, diff)) {
-                    // wait for next detection cycle to confirm
                     log.debug("Awaiting confirmation for {}", diff.diff());
                     break;
                 }
                 referenceBoard = board;
                 var move = diff.diff().toMove();
-                if (flipped) move = flipMove(move);
                 clicker.click(move, flipped);
                 gameService.executeMove(move);
                 break;
@@ -109,7 +105,4 @@ public class AutomationService {
         }
     }
 
-    private Move flipMove(Move m) {
-        return new Move(9 - m.fromRow(), 8 - m.fromCol(), 9 - m.toRow(), 8 - m.toCol());
-    }
 }
