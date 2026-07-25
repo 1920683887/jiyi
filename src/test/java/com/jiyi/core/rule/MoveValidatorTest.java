@@ -45,16 +45,29 @@ class MoveValidatorTest {
     void redPawnForward() {
         String fen = "4k4/9/9/9/9/9/9/9/5P3/4K4 w - - 0 1";
         Board b = Board.fromFen(fen);
-        assertTrue(validator.canGo(b, Move.fromUci("f1f0"), true));
+        assertTrue(validator.canGo(b, Move.fromUci("f1f2"), true));
+    }
+
+    @Test
+    void redPawnForwardAfterRiver() {
+        String fen = "4k4/9/9/9/5P3/9/9/9/9/4K4 w - - 0 1";
+        Board b = Board.fromFen(fen);
+        assertTrue(validator.canGo(b, Move.fromUci("f5f6"), true), "forward");
     }
 
     @Test
     void redPawnSidewaysAfterRiver() {
-        String fen = "4k4/9/9/9/9/5P3/9/9/9/4K4 w - - 0 1";
+        String fen = "4k4/9/9/9/5P3/9/9/9/9/4K4 w - - 0 1";
         Board b = Board.fromFen(fen);
-        assertTrue(validator.canGo(b, Move.fromUci("f4f3"), true), "forward");
-        assertTrue(validator.canGo(b, Move.fromUci("f4e4"), true), "left");
-        assertTrue(validator.canGo(b, Move.fromUci("f4g4"), true), "right");
+        assertTrue(validator.canGo(b, Move.fromUci("f5e5"), true), "left");
+        assertTrue(validator.canGo(b, Move.fromUci("f5g5"), true), "right");
+    }
+
+    @Test
+    void redPawnNoSidewaysBeforeRiver() {
+        String fen = "4k4/9/9/9/9/9/5P3/9/9/4K4 w - - 0 1";
+        Board b = Board.fromFen(fen);
+        assertFalse(validator.canGo(b, Move.fromUci("f3e3"), true), "not crossed");
     }
 
     @Test

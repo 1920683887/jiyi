@@ -136,8 +136,8 @@ public class MoveGenerator {
     }
 
     private void addPawnMoves(Board board, int r, int c, boolean isRed, List<Move> moves) {
-        int forward = isRed ? 1 : -1;
-        boolean crossed = isRed ? r >= 5 : r <= 4;
+        int forward = isRed ? -1 : 1;
+        boolean crossed = isRed ? r <= 4 : r >= 5;
         tryAdd(board, r, c, r + forward, c, isRed, moves);
         if (crossed) {
             tryAdd(board, r, c, r, c - 1, isRed, moves);

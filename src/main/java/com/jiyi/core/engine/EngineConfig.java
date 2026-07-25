@@ -9,6 +9,8 @@ public class EngineConfig {
     private int threads = 1;
     private int hash = 256;
     private boolean ponder = false;
+    private String analysisModel = "FIXED_TIME";
+    private long analysisValue = 5000;
     private Map<String, String> customOptions = new HashMap<>();
 
     public EngineConfig() {}
@@ -28,8 +30,15 @@ public class EngineConfig {
     public void setHash(int hash) { this.hash = hash; }
     public boolean isPonder() { return ponder; }
     public void setPonder(boolean ponder) { this.ponder = ponder; }
+    public String getAnalysisModel() { return analysisModel; }
+    public void setAnalysisModel(String v) { this.analysisModel = v; }
+    public long getAnalysisValue() { return analysisValue; }
+    public void setAnalysisValue(long v) { this.analysisValue = v; }
     public Map<String, String> getCustomOptions() { return customOptions; }
     public void setCustomOptions(Map<String, String> customOptions) { this.customOptions = customOptions; }
+    
+    public String analysisModel() { return analysisModel; }
+    public long analysisValue() { return analysisValue; }
 
     public String name() { return name; }
     public String path() { return path; }

@@ -38,7 +38,7 @@ public class ChineseTranslator {
             action = "平";
             toNum = nums[isRed ? 8 - move.toCol() : move.toCol()];
         } else {
-            boolean forward = isRed ? move.toRow() > move.fromRow() : move.toRow() < move.fromRow();
+            boolean forward = isRed ? move.toRow() < move.fromRow() : move.toRow() > move.fromRow();
             action = forward ? "进" : "退";
             int distance = Math.abs(move.toRow() - move.fromRow());
             if (piece == 'N' || piece == 'n' || piece == 'A' || piece == 'a'

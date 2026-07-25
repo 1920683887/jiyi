@@ -55,6 +55,9 @@
                                             <ComboBox fx:id="threadCombo" prefWidth="60.0" />
                                             <ComboBox fx:id="hashCombo" prefWidth="65.0" />
                                             <Label text="MB" />
+                                            <Separator orientation="VERTICAL" />
+                                            <ComboBox fx:id="analysisModelCombo" prefWidth="80.0" />
+                                            <TextField fx:id="analysisValueField" prefWidth="50.0" />
                                         </ToolBar>
                                     </top>
                                     <center>

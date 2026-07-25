@@ -51,6 +51,8 @@ public class MainController {
     @FXML private ComboBox<String> engineCombo;
     @FXML private ComboBox<Integer> threadCombo;
     @FXML private ComboBox<Integer> hashCombo;
+    @FXML private ComboBox<String> analysisModelCombo;
+    @FXML private TextField analysisValueField;
     @FXML private Button tag1Btn;
     @FXML private Button tag2Btn;
     @FXML private Button tag3Btn;
@@ -128,6 +130,9 @@ public class MainController {
         threadCombo.setValue(4);
         hashCombo.getItems().addAll(16, 32, 64, 128, 256, 512, 1024, 2048, 4096);
         hashCombo.setValue(256);
+        analysisModelCombo.getItems().addAll("固定时间", "固定深度", "无限");
+        analysisModelCombo.setValue("固定时间");
+        analysisValueField.setText("5000");
         refreshEngineList();
 
         gameService.startNewGame();
@@ -199,10 +204,12 @@ public class MainController {
     public void onEngineRed() {
         var cfg = findSelectedEngine();
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
+        gameService.startNewGame();
         engineSide = "red";
-        if (!startEngine(cfg)) return;
+        engineThinking = true;
+        if (!startEngine(cfg)) { engineThinking = false; return; }
         if (gameService.isRedToGo()) {
-            engineService.analyze(gameService.getCurrentBoard());
+            engineService.analyze(gameService.getCurrentBoard(), true);
         }
         engineRedButton.setText("引擎红 ✓");
         engineBlackButton.setText("引擎黑");
@@ -213,10 +220,12 @@ public class MainController {
     public void onEngineBlack() {
         var cfg = findSelectedEngine();
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
+        gameService.startNewGame();
         engineSide = "black";
-        if (!startEngine(cfg)) return;
+        engineThinking = true;
+        if (!startEngine(cfg)) { engineThinking = false; return; }
         if (!gameService.isRedToGo()) {
-            engineService.analyze(gameService.getCurrentBoard());
+            engineService.analyze(gameService.getCurrentBoard(), false);
         }
         engineBlackButton.setText("引擎黑 ✓");
         engineRedButton.setText("引擎红");
@@ -236,7 +245,7 @@ public class MainController {
         } else {
             engineSide = "all";
             if (!startEngine(cfg)) return;
-            engineService.analyze(gameService.getCurrentBoard());
+            engineService.analyze(gameService.getCurrentBoard(), gameService.isRedToGo());
             analysisButton.setText("停止");
         }
     }
@@ -373,6 +382,15 @@ public class MainController {
         if (engineService.isRunning()) engineService.stopEngine();
         cfg.setThreads(threadCombo.getValue());
         cfg.setHash(hashCombo.getValue());
+        String model = analysisModelCombo.getValue();
+        cfg.setAnalysisModel(switch (model) {
+            case "固定时间" -> "FIXED_TIME";
+            case "固定深度" -> "FIXED_STEPS";
+            default -> "INFINITE";
+        });
+        try {
+            cfg.setAnalysisValue(Long.parseLong(analysisValueField.getText()));
+        } catch (NumberFormatException ignored) {}
         engineService.startEngine(cfg);
         if (!engineService.isRunning()) {
             statusLabel.setText("引擎启动失败");
@@ -424,6 +442,7 @@ public class MainController {
 
     @FXML
     public void onCanvasClicked(MouseEvent e) {
+        if (engineThinking) return;
         Board board = gameService.getCurrentBoard();
         if (board == null) return;
         int[] grid = screenToBoard(e.getX(), e.getY());
@@ -441,6 +460,7 @@ public class MainController {
             Move move = new Move(selectedRow, selectedCol, row, col);
             if (gameService.executeMove(move)) {
                 selectedRow = -1; selectedCol = -1;
+                redrawBoard(gameService.getCurrentBoard());
             } else {
                 char piece = board.pieceAt(row, col);
                 if (piece != ' ' && Piece.isRedChar(piece) == gameService.isRedToGo()) {
@@ -459,7 +479,7 @@ public class MainController {
         recordTable.scrollTo(recordTable.getItems().size() - 1);
         turnLabel.setText(event.isRed() ? "黑方走棋" : "红方走棋");
         if (engineService.isRunning() && isEngineTurn()) {
-            engineService.analyze(event.board());
+            engineService.analyze(event.board(), gameService.isRedToGo());
         }
     }
 

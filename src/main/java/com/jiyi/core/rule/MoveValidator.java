@@ -86,11 +86,11 @@ public class MoveValidator {
     private boolean canPawnGo(Move move, boolean isRed) {
         int dr = move.toRow() - move.fromRow();
         int dc = Math.abs(move.toCol() - move.fromCol());
-        boolean forward = isRed ? dr == 1 : dr == -1;
-        boolean crossedRiver = isRed ? move.fromRow() >= 5 : move.fromRow() <= 4;
+        boolean forward = isRed ? dr == -1 : dr == 1;
+        boolean crossedRiver = isRed ? move.fromRow() <= 4 : move.fromRow() >= 5;
 
         if (forward) return dc == 0;
-        if (crossedRiver) return (dr == 0 && dc == 1) || (forward);
+        if (crossedRiver) return (dr == 0 && dc == 1);
         return false;
     }
 

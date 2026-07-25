@@ -106,18 +106,20 @@ public class EngineService {
         });
     }
 
-    public void analyze(Board board) {
+    public void analyze(Board board, boolean redGo) {
         if (!running || protocol == null) return;
         currentMoves.clear();
-        // Stop any ongoing search before sending new position + go
         stopSearch();
-        sendPosition(board);
-        long time = config.engine().analysisValue();
-        if ("FIXED_TIME".equals(config.engine().analysisModel())) {
-            if (protocol instanceof UciProtocol uci) uci.goTime(time);
-            else if (protocol instanceof UcciProtocol ucci) ucci.goTime(time);
+        sendPosition(board, redGo);
+        var cfg = engineConfig.get();
+        if (cfg == null) return;
+        String model = cfg.analysisModel() != null ? cfg.analysisModel() : "FIXED_TIME";
+        long value = cfg.analysisValue();
+        if ("FIXED_TIME".equals(model)) {
+            if (protocol instanceof UciProtocol uci) uci.goTime(value);
+            else if (protocol instanceof UcciProtocol ucci) ucci.goTime(value);
         } else {
-            int depth = (int) time;
+            int depth = (int) value;
             if (protocol instanceof UciProtocol uci) uci.goDepth(depth);
             else if (protocol instanceof UcciProtocol ucci) ucci.goDepth(depth);
         }
@@ -128,11 +130,11 @@ public class EngineService {
         else if (protocol instanceof UcciProtocol ucci) ucci.stop();
     }
 
-    private void sendPosition(Board board) {
+    private void sendPosition(Board board, boolean redGo) {
         if (protocol instanceof UciProtocol uci) {
-            uci.position(board, List.of());
+            uci.position(board, redGo, List.of());
         } else if (protocol instanceof UcciProtocol ucci) {
-            ucci.position(board, List.of());
+            ucci.position(board, redGo, List.of());
         }
     }
 

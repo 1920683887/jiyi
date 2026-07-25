@@ -30,8 +30,8 @@ public class UciProtocol {
     public void setThreads(int n) { setOption("Threads", String.valueOf(n)); }
     public void setHash(int mb) { setOption("Hash", String.valueOf(mb)); }
 
-    public void position(Board board, List<Move> moves) {
-        StringBuilder cmd = new StringBuilder("position fen " + board.toFen(true));
+    public void position(Board board, boolean redGo, List<Move> moves) {
+        StringBuilder cmd = new StringBuilder("position fen " + board.toFen(redGo));
         if (!moves.isEmpty()) {
             cmd.append(" moves");
             for (Move m : moves) cmd.append(" ").append(m.toUci());

@@ -26,8 +26,8 @@ public class UcciProtocol {
     public void setThreads(int n) { proc.send("setoption usethreads value " + n); }
     public void setHash(int mb) { proc.send("setoption hashsize value " + mb); }
 
-    public void position(Board board, List<Move> moves) {
-        StringBuilder cmd = new StringBuilder("position fen " + board.toFen(true));
+    public void position(Board board, boolean redGo, List<Move> moves) {
+        StringBuilder cmd = new StringBuilder("position fen " + board.toFen(redGo));
         if (!moves.isEmpty()) {
             cmd.append(" moves");
             for (Move m : moves) cmd.append(" ").append(m.toUci());

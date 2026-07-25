@@ -59,7 +59,11 @@ public class GameService {
             return false;
         }
         if (!moveValidator.canGo(currentBoard, move, redToGo)) {
-            log.debug("Invalid move: {}", move.toUci());
+            char piece = currentBoard.pieceAt(move.fromRow(), move.fromCol());
+            char target = currentBoard.pieceAt(move.toRow(), move.toCol());
+            log.warn("Invalid move: {} (from {}x{}='{}' to {}x{}='{}' turn={})",
+                move.toUci(), move.fromRow(), move.fromCol(), piece,
+                move.toRow(), move.toCol(), target, redToGo);
             return false;
         }
         Board newBoard = currentBoard.apply(move);
