@@ -87,9 +87,9 @@
                                             <center>
                                                 <TableView fx:id="recordTable">
                                                     <columns>
-                                                        <TableColumn prefWidth="50.0" text="序号" />
-                                                        <TableColumn prefWidth="95.0" text="着法" />
-                                                        <TableColumn prefWidth="60.0" text="分数" />
+                                                        <TableColumn fx:id="numCol" prefWidth="50.0" text="序号" />
+                                                        <TableColumn fx:id="moveCol" prefWidth="95.0" text="着法" />
+                                                        <TableColumn fx:id="scoreCol" prefWidth="60.0" text="分数" />
                                                     </columns>
                                                 </TableView>
                                             </center>

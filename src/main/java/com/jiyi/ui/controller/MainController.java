@@ -36,6 +36,21 @@ import org.slf4j.LoggerFactory;
 public class MainController {
     private static final Logger log = LoggerFactory.getLogger(MainController.class);
 
+    public static class MoveRow {
+        private final javafx.beans.property.IntegerProperty num = new javafx.beans.property.SimpleIntegerProperty();
+        private final javafx.beans.property.StringProperty move = new javafx.beans.property.SimpleStringProperty();
+        private final javafx.beans.property.StringProperty score = new javafx.beans.property.SimpleStringProperty();
+        public MoveRow(int num, String move, String score) {
+            this.num.set(num); this.move.set(move); this.score.set(score);
+        }
+        public int getNum() { return num.get(); }
+        public String getMove() { return move.get(); }
+        public String getScore() { return score.get(); }
+        public javafx.beans.property.IntegerProperty numProperty() { return num; }
+        public javafx.beans.property.StringProperty moveProperty() { return move; }
+        public javafx.beans.property.StringProperty scoreProperty() { return score; }
+    }
+
     @Inject private EventBus eventBus;
     @Inject private GameService gameService;
     @Inject private EngineService engineService;
@@ -46,7 +61,10 @@ public class MainController {
 
     @FXML private Canvas boardCanvas;
     @FXML private ListView<String> engineOutput;
-    @FXML private TableView<String> recordTable;
+    @FXML private TableView<MoveRow> recordTable;
+    @FXML private TableColumn<MoveRow, Integer> numCol;
+    @FXML private TableColumn<MoveRow, String> moveCol;
+    @FXML private TableColumn<MoveRow, String> scoreCol;
     @FXML private TextArea remarkText;
     @FXML private ComboBox<String> engineCombo;
     @FXML private ComboBox<Integer> threadCombo;
@@ -97,6 +115,13 @@ public class MainController {
         eventBus.register(GameEvent.BoardChanged.class, e -> {
             redrawBoard(e.board());
         }, EventBus.Dispatch.PLATFORM);
+        eventBus.register(GameEvent.UndoExecuted.class, e -> {
+            redrawBoard(e.board());
+            recordTable.getItems().remove(recordTable.getItems().size() - 1);
+        }, EventBus.Dispatch.PLATFORM);
+        eventBus.register(GameEvent.SideSwitched.class, e -> {
+            turnLabel.setText(e.redToGo() ? "红方走棋" : "黑方走棋");
+        }, EventBus.Dispatch.PLATFORM);
         eventBus.register(GameEvent.GameEnded.class, e -> {
             statusLabel.setText("对局结束: " + e.result());
         }, EventBus.Dispatch.PLATFORM);
@@ -113,7 +138,6 @@ public class MainController {
             updateWinRate();
         }, EventBus.Dispatch.PLATFORM);
         eventBus.register(EngineEvent.EngineStarted.class, e -> {
-            engineThinking = true;
             statusLabel.setText("引擎已启动: " + e.name());
         }, EventBus.Dispatch.PLATFORM);
         eventBus.register(EngineEvent.EngineStopped.class, e -> {
@@ -121,6 +145,7 @@ public class MainController {
             statusLabel.setText("引擎已停止: " + e.name());
         }, EventBus.Dispatch.PLATFORM);
         eventBus.register(EngineEvent.BestMove.class, e -> {
+            engineThinking = false;
             if (e.move() != null && isEngineTurn()) {
                 gameService.executeMove(e.move());
             }
@@ -130,9 +155,19 @@ public class MainController {
         threadCombo.setValue(4);
         hashCombo.getItems().addAll(16, 32, 64, 128, 256, 512, 1024, 2048, 4096);
         hashCombo.setValue(256);
+        numCol.setCellValueFactory(cellData -> cellData.getValue().numProperty().asObject());
+        moveCol.setCellValueFactory(cellData -> cellData.getValue().moveProperty());
+        scoreCol.setCellValueFactory(cellData -> cellData.getValue().scoreProperty());
+
         analysisModelCombo.getItems().addAll("固定时间", "固定深度", "无限");
         analysisModelCombo.setValue("固定时间");
         analysisValueField.setText("5000");
+        engineCombo.getSelectionModel().selectedItemProperty().addListener((obs, old, name) -> {
+            if (name == null || name.equals("(无引擎)")) return;
+            config.engine().list().stream()
+                .filter(e -> e.name().equals(name)).findFirst()
+                .ifPresent(this::loadEngineParams);
+        });
         refreshEngineList();
 
         gameService.startNewGame();
@@ -157,6 +192,14 @@ public class MainController {
                 javafx.scene.input.KeyCombination.CONTROL_DOWN), () -> gameService.startNewGame());
         scene.getAccelerators().put(
             new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F5), this::flipBoard);
+    }
+
+    private void loadEngineParams(EngineConfig cfg) {
+        String model = cfg.analysisModel();
+        if ("FIXED_TIME".equals(model)) analysisModelCombo.setValue("固定时间");
+        else if ("FIXED_STEPS".equals(model)) analysisModelCombo.setValue("固定深度");
+        else analysisModelCombo.setValue("无限");
+        analysisValueField.setText(String.valueOf(cfg.analysisValue()));
     }
 
     private void refreshEngineList() {
@@ -206,9 +249,9 @@ public class MainController {
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
         gameService.startNewGame();
         engineSide = "red";
-        engineThinking = true;
-        if (!startEngine(cfg)) { engineThinking = false; return; }
+        if (!startEngine(cfg)) return;
         if (gameService.isRedToGo()) {
+            engineThinking = true;
             engineService.analyze(gameService.getCurrentBoard(), true);
         }
         engineRedButton.setText("引擎红 ✓");
@@ -222,9 +265,9 @@ public class MainController {
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
         gameService.startNewGame();
         engineSide = "black";
-        engineThinking = true;
-        if (!startEngine(cfg)) { engineThinking = false; return; }
+        if (!startEngine(cfg)) return;
         if (!gameService.isRedToGo()) {
+            engineThinking = true;
             engineService.analyze(gameService.getCurrentBoard(), false);
         }
         engineBlackButton.setText("引擎黑 ✓");
@@ -245,6 +288,7 @@ public class MainController {
         } else {
             engineSide = "all";
             if (!startEngine(cfg)) return;
+            engineThinking = true;
             engineService.analyze(gameService.getCurrentBoard(), gameService.isRedToGo());
             analysisButton.setText("停止");
         }
@@ -431,9 +475,8 @@ public class MainController {
         String fen = cb.getString();
         if (fen != null && !fen.isEmpty()) {
             try {
-                Board b = Board.fromFen(fen);
-                gameService.startNewGame();
-                redrawBoard(b);
+                gameService.loadFen(fen);
+                statusLabel.setText("已加载局面");
             } catch (Exception e) {
                 statusLabel.setText("无效的FEN");
             }
@@ -475,10 +518,12 @@ public class MainController {
         redrawBoard(event.board());
         lastMove = event.move();
         selectedRow = -1;
-        recordTable.getItems().add(event.move().toUci());
+        int moveNum = recordTable.getItems().size() + 1;
+        recordTable.getItems().add(new MoveRow(moveNum, event.move().toUci(), ""));
         recordTable.scrollTo(recordTable.getItems().size() - 1);
         turnLabel.setText(event.isRed() ? "黑方走棋" : "红方走棋");
         if (engineService.isRunning() && isEngineTurn()) {
+            engineThinking = true;
             engineService.analyze(event.board(), gameService.isRedToGo());
         }
     }

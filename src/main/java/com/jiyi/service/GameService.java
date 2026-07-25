@@ -53,6 +53,17 @@ public class GameService {
         log.info("New game started");
     }
 
+    public void loadFen(String fen) {
+        currentBoard = Board.fromFen(fen);
+        String fenPart = fen.split(" ")[0];
+        redToGo = fen.contains(" w ") || (!fen.contains(" b "));
+        status = GameStatus.PLAYING;
+        boardHistory.clear();
+        moveHistory.clear();
+        eventBus.post(new GameEvent.GameStarted(currentBoard));
+        log.info("Loaded FEN: {}", fen);
+    }
+
     public boolean executeMove(Move move) {
         if (status != GameStatus.PLAYING) {
             log.warn("Cannot move: game not playing");
