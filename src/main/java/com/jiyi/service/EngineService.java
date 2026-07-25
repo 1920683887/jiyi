@@ -58,11 +58,37 @@ public class EngineService {
                 }
             }
 
+            // Send Threads/Hash options
+            sendEngineOptions(cfg);
+
+            // isready/readyok handshake
+            process.send("isready");
+            boolean ready = process.waitForLine("readyok", 5000);
+            if (!ready) {
+                log.warn("Engine {} did not respond to isready", cfg.name());
+            }
+
             running = true;
             eventBus.post(new EngineEvent.EngineStarted(cfg.name()));
             log.info("Engine started: {} ({})", cfg.name(), detected);
         } catch (IOException e) {
             log.error("Failed to start engine: {}", cfg.path(), e);
+        }
+    }
+
+    private void sendEngineOptions(EngineConfig cfg) {
+        if (protocol instanceof UciProtocol uci) {
+            uci.setThreads(cfg.threads());
+            uci.setHash(cfg.hash());
+            for (var opt : cfg.customOptions().entrySet()) {
+                uci.setOption(opt.getKey(), opt.getValue());
+            }
+        } else if (protocol instanceof UcciProtocol ucci) {
+            ucci.setThreads(cfg.threads());
+            ucci.setHash(cfg.hash());
+            for (var opt : cfg.customOptions().entrySet()) {
+                ucci.setOption(opt.getKey(), opt.getValue());
+            }
         }
     }
 
@@ -110,6 +136,7 @@ public class EngineService {
         if (!running || protocol == null) return;
         currentMoves.clear();
         stopSearch();
+        sleep(50);
         sendPosition(board, redGo);
         var cfg = engineConfig.get();
         if (cfg == null) return;
@@ -150,4 +177,8 @@ public class EngineService {
     }
 
     public boolean isRunning() { return running; }
+    
+    private void sleep(long ms) {
+        try { Thread.sleep(ms); } catch (InterruptedException ignored) {}
+    }
 }

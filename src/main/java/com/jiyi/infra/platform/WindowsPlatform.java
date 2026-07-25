@@ -130,6 +130,7 @@ public class WindowsPlatform implements Platform {
 
     // Window selection — 启动全局鼠标钩子
     public void startWindowSelection(java.util.function.Consumer<Long> onSelected) {
+        if (globalMouse != null) globalMouse.close();
         this.windowCallback = onSelected;
         try {
             selectCrossCursor();
@@ -155,13 +156,17 @@ public class WindowsPlatform implements Platform {
 
     private void selectCrossCursor() {
         try {
-            // Use built-in crosshair cursor
-            var hc = User32Extra.INSTANCE.LoadCursorFromFileA("D:\\极弈\\projects\\ji-yi-java\\circle.ico");
+            String[] paths = {"circle.ico", "D:\\极弈\\assets\\models\\..\\..\\circle.ico"};
+            WinDef.HCURSOR hc = null;
+            for (String p : paths) {
+                hc = User32Extra.INSTANCE.LoadCursorFromFileA(p);
+                if (hc != null) break;
+            }
             if (hc != null) {
                 User32Extra.INSTANCE.SetSystemCursor(hc, new WinDef.DWORD(32512));
             }
         } catch (Exception e) {
-            log.debug("Custom cursor not found, using default");
+            log.debug("Cursor unavailable, will use default");
         }
     }
 

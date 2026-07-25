@@ -82,23 +82,20 @@ public class UciProtocol {
             String[] tokens = line.split("\\s+");
             for (int i = 0; i < tokens.length; i++) {
                 switch (tokens[i]) {
-                    case "depth" -> depth = Integer.parseInt(tokens[++i]);
+                    case "depth" -> { if (++i < tokens.length) depth = Integer.parseInt(tokens[i]); }
                     case "score" -> {
-                        ++i; // skip to the sub-token (cp/mate)
-                        if (i >= tokens.length) break;
-                        if ("cp".equals(tokens[i])) {
-                            if (++i < tokens.length) score = Integer.parseInt(tokens[i]);
-                        } else if ("mate".equals(tokens[i])) {
+                        if (++i >= tokens.length) break;
+                        if ("cp".equals(tokens[i]) && ++i < tokens.length) {
+                            score = Integer.parseInt(tokens[i]);
+                        } else if ("mate".equals(tokens[i]) && ++i < tokens.length) {
                             isMate = true;
-                            if (++i < tokens.length) {
-                                mate = Integer.parseInt(tokens[i]);
-                                score = mate;
-                            }
+                            mate = Integer.parseInt(tokens[i]);
+                            score = mate;
                         }
                     }
-                    case "time" -> time = Long.parseLong(tokens[++i]);
-                    case "nps" -> nps = Long.parseLong(tokens[++i]);
-                    case "multipv" -> pv = Integer.parseInt(tokens[++i]);
+                    case "time" -> { if (++i < tokens.length) time = Long.parseLong(tokens[i]); }
+                    case "nps" -> { if (++i < tokens.length) nps = Long.parseLong(tokens[i]); }
+                    case "multipv" -> { if (++i < tokens.length) pv = Integer.parseInt(tokens[i]); }
                     case "pv" -> {
                         StringBuilder sb = new StringBuilder();
                         for (int j = i + 1; j < tokens.length; j++) sb.append(tokens[j]).append(" ");

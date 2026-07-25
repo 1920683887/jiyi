@@ -53,7 +53,7 @@ public class AutomationService {
     public boolean isEnabled() { return enabled; }
 
     // Called from DetectionService (synchronous, on detection thread)
-    public void onBoardDetected(DetectionResult detResult, Board board, boolean flipped) {
+    public synchronized void onBoardDetected(DetectionResult detResult, Board board, boolean flipped) {
         if (!enabled) return;
         if (detResult.boardRect() != null) {
             this.boardRect = detResult.boardRect();

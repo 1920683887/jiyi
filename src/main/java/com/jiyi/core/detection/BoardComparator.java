@@ -96,15 +96,55 @@ public class BoardComparator {
         return new ComparisonResult(action, diff);
     }
 
-    // needConfirm: for rook/cannon moves, do a second scan to verify
+    // needConfirm: for rook/cannon moves, do a second scan to verify (TCHESS-compatible)
     public boolean needConfirm(Board linkBoard, Board engineBoard, ComparisonResult result) {
         if (result == null || result.diff() == null) return false;
         if (result.action() == Action.NEW_GAME) return true;
         var d = result.diff();
         char movedPiece = linkBoard.pieceAt(d.toRow(), d.toCol());
-        if (movedPiece != 'R' && movedPiece != 'r' && movedPiece != 'C' && movedPiece != 'c')
-            return false;
-        // Check if the destination is clear in engine board (expecting confirmation)
-        return engineBoard.pieceAt(d.toRow(), d.toCol()) == ' ';
+        if (movedPiece != 'R' && movedPiece != 'r'
+            && movedPiece != 'C' && movedPiece != 'c') return false;
+
+        // Engine board expects the destination to be empty (piece just arrived)
+        if (engineBoard.pieceAt(d.toRow(), d.toCol()) != ' ') return false;
+
+        // For rook: check that the path behind the destination is safe
+        if (movedPiece == 'R' || movedPiece == 'r') {
+            int dr = d.toRow() - d.fromRow();
+            int dc = d.toCol() - d.fromCol();
+            int checkR = d.toRow() + Integer.signum(dr);
+            int checkC = d.toCol() + Integer.signum(dc);
+            if (checkR >= 0 && checkR <= 9 && checkC >= 0 && checkC <= 8) {
+                char behind = engineBoard.pieceAt(checkR, checkC);
+                if (behind != ' ') {
+                    // If there's a piece behind the destination that matches the mover's color,
+                    // this might be a capture that needs confirmation
+                    if (Character.isUpperCase(behind) == Character.isUpperCase(movedPiece)) {
+                        return false; // Own piece behind → safe, no need to confirm
+                    }
+                }
+            }
+        }
+
+        // For cannon: check if there's a screen piece that could be wrong
+        if (movedPiece == 'C' || movedPiece == 'c') {
+            int count = 0;
+            if (d.fromRow() == d.toRow()) {
+                int minC = Math.min(d.fromCol(), d.toCol());
+                int maxC = Math.max(d.fromCol(), d.toCol());
+                for (int c = minC + 1; c < maxC; c++) {
+                    if (engineBoard.pieceAt(d.fromRow(), c) != ' ') count++;
+                }
+            } else if (d.fromCol() == d.toCol()) {
+                int minR = Math.min(d.fromRow(), d.toRow());
+                int maxR = Math.max(d.fromRow(), d.toRow());
+                for (int r = minR + 1; r < maxR; r++) {
+                    if (engineBoard.pieceAt(r, d.fromCol()) != ' ') count++;
+                }
+            }
+            if (count > 1) return false; // Multiple screens → not a cannon capture move
+        }
+
+        return true; // Need confirmation scan
     }
 }

@@ -4,8 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public class EngineProcess implements AutoCloseable {
@@ -14,7 +14,7 @@ public class EngineProcess implements AutoCloseable {
     private final Process process;
     private final BufferedWriter writer;
     private volatile boolean running;
-    private final List<Consumer<String>> callbacks = new ArrayList<>();
+    private final List<Consumer<String>> callbacks = new CopyOnWriteArrayList<>();
 
     public EngineProcess(String command) throws IOException {
         ProcessBuilder pb = new ProcessBuilder(command);
@@ -52,6 +52,24 @@ public class EngineProcess implements AutoCloseable {
         } catch (IOException e) {
             log.error("Failed to send: {}", cmd, e);
         }
+    }
+
+    public boolean waitForLine(String contains, long timeoutMs) {
+        var found = new boolean[]{false};
+        var cb = (Consumer<String>) line -> {
+            if (line.contains(contains)) found[0] = true;
+        };
+        callbacks.add(cb);
+        try {
+            long deadline = System.currentTimeMillis() + timeoutMs;
+            while (!found[0] && System.currentTimeMillis() < deadline) {
+                Thread.sleep(10);
+            }
+        } catch (InterruptedException ignored) {
+        } finally {
+            callbacks.remove(cb);
+        }
+        return found[0];
     }
 
     @Override

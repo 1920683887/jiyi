@@ -21,6 +21,7 @@ public class DetectionService implements AutoCloseable {
     private final Config config;
 
     private volatile boolean running;
+    private volatile Thread detectionThread;
     private long targetWindowHwnd;
     private boolean isFlipped;
 
@@ -45,12 +46,18 @@ public class DetectionService implements AutoCloseable {
         if (detector == null) return false;
         this.targetWindowHwnd = hwnd;
         this.running = true;
-        Thread.ofPlatform().name("detection").start(this::loop);
+        this.detectionThread = Thread.ofPlatform().name("detection").start(this::loop);
         log.info("Detection started on hwnd=0x{}", Long.toHexString(hwnd));
         return true;
     }
 
-    public void stop() { running = false; }
+    public void stop() {
+        running = false;
+        if (detectionThread != null) {
+            detectionThread.interrupt();
+            detectionThread = null;
+        }
+    }
 
     public void setFlipped(boolean f) { isFlipped = f; }
 
