@@ -1,5 +1,7 @@
 package com.jiyi.infra.config;
 
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import org.slf4j.Logger;
@@ -17,6 +19,9 @@ public class ConfigManager {
 
     public ConfigManager() {
         mapper = new ObjectMapper();
+        mapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
+        mapper.setVisibility(PropertyAccessor.GETTER, Visibility.NONE);
+        mapper.setVisibility(PropertyAccessor.SETTER, Visibility.NONE);
         mapper.registerModule(new Jdk8Module());
         mapper.writerWithDefaultPrettyPrinter();
     }

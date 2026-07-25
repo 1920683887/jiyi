@@ -72,6 +72,20 @@ class MoveValidatorTest {
     }
 
     @Test
+    void cannonCaptureWithScreen() {
+        String fen = "4k4/9/9/2p6/9/9/2P6/2C6/9/4K4 w - - 0 1";
+        Board b = Board.fromFen(fen);
+        assertTrue(validator.canGo(b, Move.fromUci("c2c6"), true));
+    }
+
+    @Test
+    void cannonCannotCaptureWithoutScreen() {
+        String fen = "4k4/9/9/2p6/9/9/9/2C6/9/4K4 w - - 0 1";
+        Board b = Board.fromFen(fen);
+        assertFalse(validator.canGo(b, Move.fromUci("c2c6"), true));
+    }
+
+    @Test
     void kingMove() {
         String fen = "4k4/9/9/9/9/9/9/9/9/4K4 w - - 0 1";
         Board b = Board.fromFen(fen);

@@ -74,11 +74,11 @@ public class MoveValidator {
     }
 
     private boolean canCannonGo(Board board, Move move) {
-        if (!isLineClearExceptTarget(board, move.fromRow(), move.fromCol(), move.toRow(), move.toCol()))
-            return false;
+        if (move.fromRow() != move.toRow() && move.fromCol() != move.toCol()) return false;
         char target = board.pieceAt(move.toRow(), move.toCol());
-        if (target == ' ') return true;
-
+        if (target == ' ') {
+            return isLineClear(board, move.fromRow(), move.fromCol(), move.toRow(), move.toCol());
+        }
         int count = countBetween(board, move.fromRow(), move.fromCol(), move.toRow(), move.toCol());
         return count == 1;
     }
@@ -100,22 +100,6 @@ public class MoveValidator {
     }
 
     private boolean isLineClear(Board board, int r1, int c1, int r2, int c2) {
-        if (r1 == r2) {
-            int minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
-            for (int c = minC + 1; c < maxC; c++)
-                if (!board.isEmpty(r1, c)) return false;
-            return true;
-        }
-        if (c1 == c2) {
-            int minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
-            for (int r = minR + 1; r < maxR; r++)
-                if (!board.isEmpty(r, c1)) return false;
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isLineClearExceptTarget(Board board, int r1, int c1, int r2, int c2) {
         if (r1 == r2) {
             int minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
             for (int c = minC + 1; c < maxC; c++)
