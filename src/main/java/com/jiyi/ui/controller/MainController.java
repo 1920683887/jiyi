@@ -200,7 +200,7 @@ public class MainController {
         var cfg = findSelectedEngine();
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
         engineSide = "red";
-        startEngine(cfg);
+        if (!startEngine(cfg)) return;
         if (gameService.isRedToGo()) {
             engineService.analyze(gameService.getCurrentBoard());
         }
@@ -214,7 +214,7 @@ public class MainController {
         var cfg = findSelectedEngine();
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
         engineSide = "black";
-        startEngine(cfg);
+        if (!startEngine(cfg)) return;
         if (!gameService.isRedToGo()) {
             engineService.analyze(gameService.getCurrentBoard());
         }
@@ -235,7 +235,7 @@ public class MainController {
             engineBlackButton.setText("引擎黑");
         } else {
             engineSide = "all";
-            startEngine(cfg);
+            if (!startEngine(cfg)) return;
             engineService.analyze(gameService.getCurrentBoard());
             analysisButton.setText("停止");
         }
@@ -369,11 +369,16 @@ public class MainController {
         }
     }
 
-    private void startEngine(EngineConfig cfg) {
+    private boolean startEngine(EngineConfig cfg) {
         if (engineService.isRunning()) engineService.stopEngine();
         cfg.setThreads(threadCombo.getValue());
         cfg.setHash(hashCombo.getValue());
         engineService.startEngine(cfg);
+        if (!engineService.isRunning()) {
+            statusLabel.setText("引擎启动失败");
+            return false;
+        }
+        return true;
     }
 
     @FXML

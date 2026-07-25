@@ -3,6 +3,7 @@
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/app.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <maxFileSize>10MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>100MB</totalSizeCap>
@@ -18,8 +19,8 @@
         </encoder>
     </appender>
 
-    <logger name="com.jiyi.core.engine" level="INFO" />
-    <logger name="com.jiyi.service" level="INFO" />
+    <logger name="com.jiyi.core.engine" level="TRACE" />
+    <logger name="com.jiyi.service" level="TRACE" />
 
     <root level="INFO">
         <appender-ref ref="FILE" />
