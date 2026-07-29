@@ -1,31 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane fx:id="root" prefHeight="712.0" prefWidth="1169.0"
+<BorderPane fx:id="root" prefHeight="720.0" prefWidth="1200.0"
             xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.jiyi.ui.controller.MainController">
+
+    <!-- 顶部菜单栏 -->
     <top>
         <MenuBar>
             <Menu text="文件">
-                <MenuItem text="新局面" onAction="#newGame" />
-                <MenuItem text="退出" onAction="#exit" />
+                <MenuItem text="新局面" onAction="#newGame" accelerator="Ctrl+N" />
+                <SeparatorMenuItem />
+                <MenuItem text="退出" onAction="#exit" accelerator="Alt+F4" />
             </Menu>
             <Menu text="局面">
-                <MenuItem text="复制FEN" onAction="#copyFen" />
-                <MenuItem text="粘贴FEN" onAction="#pasteFen" />
+                <MenuItem text="复制FEN" onAction="#copyFen" accelerator="Ctrl+C" />
+                <MenuItem text="粘贴FEN" onAction="#pasteFen" accelerator="Ctrl+V" />
+                <MenuItem text="编辑局面" onAction="#onEditBoard" accelerator="Ctrl+E" />
+                <SeparatorMenuItem />
+                <MenuItem text="导出图片" onAction="#exportImage" />
+                <MenuItem text="复制图片" onAction="#copyImage" />
+                <SeparatorMenuItem />
+                <MenuItem text="悔棋" onAction="#undoGame" accelerator="Ctrl+Z" />
+                <MenuItem text="翻转棋盘" onAction="#flipBoard" accelerator="F5" />
             </Menu>
             <Menu text="引擎">
                 <MenuItem text="引擎管理" onAction="#onEngineManage" />
             </Menu>
+            <Menu text="棋谱">
+                <MenuItem text="打开棋谱" onAction="#onManualOpen" />
+                <MenuItem text="保存棋谱" onAction="#onManualSave" />
+            </Menu>
+            <Menu text="设置">
+                <MenuItem text="时间设置" onAction="#onTimeSettings" />
+                <MenuItem text="连线设置" onAction="#onLinkSettings" />
+                <MenuItem text="开局库设置" onAction="#onBookSettings" />
+                <SeparatorMenuItem />
+                <CheckMenuItem fx:id="topWindowMenuItem" text="窗口置顶" onAction="#onToggleTopWindow" />
+                <CheckMenuItem fx:id="stepNumbersMenuItem" text="步数提示" onAction="#onToggleStepNumbers" />
+                <SeparatorMenuItem />
+                <Menu text="棋盘大小">
+                    <fx:define>
+                        <ToggleGroup fx:id="boardSizeGroup" />
+                    </fx:define>
+                    <RadioMenuItem fx:id="boardSizeLarge" text="大" onAction="#onBoardSizeSelected" toggleGroup="$boardSizeGroup" />
+                    <RadioMenuItem fx:id="boardSizeMedium" text="中" onAction="#onBoardSizeSelected" toggleGroup="$boardSizeGroup" />
+                    <RadioMenuItem fx:id="boardSizeSmall" text="小" onAction="#onBoardSizeSelected" toggleGroup="$boardSizeGroup" />
+                    <RadioMenuItem fx:id="boardSizeAuto" text="自适应" onAction="#onBoardSizeSelected" toggleGroup="$boardSizeGroup" selected="true" />
+                </Menu>
+            </Menu>
         </MenuBar>
     </top>
+
+    <!-- 主内容区域 -->
     <center>
         <BorderPane>
+            <!-- 工具栏 -->
             <top>
-                <ToolBar prefHeight="30.0">
+                <ToolBar prefHeight="35.0">
                     <Button text="新局" onAction="#newGame" />
                     <Button text="悔棋" onAction="#undoGame" />
                     <Button fx:id="flipButton" text="翻转" onAction="#flipBoard" />
@@ -33,99 +69,168 @@
                     <Button text="复制" onAction="#copyFen" />
                     <Button text="粘贴" onAction="#pasteFen" />
                     <Separator orientation="VERTICAL" />
-                    <Button fx:id="engineRedButton" text="引擎红" onAction="#onEngineRed" />
-                    <Button fx:id="engineBlackButton" text="引擎黑" onAction="#onEngineBlack" />
-                    <Button fx:id="analysisButton" text="分析" onAction="#onAnalysis" />
+                    <Button fx:id="engineRedButton" text="引擎红" onAction="#onEngineRed" prefWidth="70.0" />
+                    <Button fx:id="engineBlackButton" text="引擎黑" onAction="#onEngineBlack" prefWidth="70.0" />
+                    <Button fx:id="analysisButton" text="分析" onAction="#onAnalysis" prefWidth="60.0" />
                     <Separator orientation="VERTICAL" />
+                    <Button fx:id="immediateMoveButton" text="立即出招" onAction="#onImmediateMove" prefWidth="70.0" />
+                    <Button fx:id="alternativeMoveButton" text="变招" onAction="#onAlternativeMove" prefWidth="60.0" />
+                    <Separator orientation="VERTICAL" />
+                    <ToggleButton fx:id="bookSwitchToggle" text="库招" onAction="#onBookSwitch" prefWidth="60.0" selected="true" />
                     <Button fx:id="linkWindowBtn" text="选窗口" onAction="#onLinkSelectWindow" />
+                    <ComboBox fx:id="linkModeCombo" prefWidth="90.0" promptText="模式" />
                     <Button fx:id="linkStartBtn" text="连线" onAction="#onLinkStart" disable="true" />
                     <Button fx:id="linkStopBtn" text="停止" onAction="#onLinkStop" disable="true" />
-                    <Label fx:id="linkStatusLabel" text="未连线" />
+                    <Label fx:id="linkStatusLabel" text="未连线" style="-fx-padding: 0 0 0 10;" />
                 </ToolBar>
             </top>
+
+            <!-- 中央分割面板 -->
             <center>
-                <SplitPane fx:id="splitPane" dividerPositions="0.642">
-                    <AnchorPane>
-                        <Canvas fx:id="boardCanvas" width="586.0" height="650.0"
-                                onMouseClicked="#onCanvasClicked" />
+                <SplitPane fx:id="splitPane" dividerPositions="0.62">
+                    <!-- 左侧：棋盘区域 -->
+                    <AnchorPane minWidth="400.0" prefWidth="600.0">
+                        <Canvas fx:id="boardCanvas" width="600.0" height="650.0"
+                                onMouseClicked="#onCanvasClicked"
+                                AnchorPane.topAnchor="5.0"
+                                AnchorPane.bottomAnchor="5.0"
+                                AnchorPane.leftAnchor="5.0"
+                                AnchorPane.rightAnchor="5.0" />
                     </AnchorPane>
-                    <AnchorPane>
-                        <SplitPane orientation="VERTICAL" dividerPositions="0.646">
-                            <AnchorPane>
-                                <BorderPane>
+
+                    <!-- 右侧：引擎输出和棋谱区域 -->
+                    <AnchorPane minWidth="400.0" prefWidth="550.0">
+                        <SplitPane orientation="VERTICAL" dividerPositions="0.55"
+                                   AnchorPane.topAnchor="0.0"
+                                   AnchorPane.bottomAnchor="0.0"
+                                   AnchorPane.leftAnchor="0.0"
+                                   AnchorPane.rightAnchor="0.0">
+
+                            <!-- 上方：引擎输出 -->
+                            <AnchorPane minHeight="200.0">
+                                <BorderPane AnchorPane.topAnchor="0.0"
+                                           AnchorPane.bottomAnchor="0.0"
+                                           AnchorPane.leftAnchor="0.0"
+                                           AnchorPane.rightAnchor="0.0">
                                     <top>
-                                        <ToolBar>
-                                            <Label text="引擎" />
-                                            <ComboBox fx:id="engineCombo" prefWidth="95.0" />
+                                        <ToolBar prefHeight="32.0">
+                                            <Label text="引擎:" style="-fx-font-weight: bold;" />
+                                            <ComboBox fx:id="engineCombo" prefWidth="100.0" promptText="选择引擎" />
+                                            <Label text="线程:" style="-fx-padding: 0 0 0 5;" />
                                             <ComboBox fx:id="threadCombo" prefWidth="60.0" />
-                                            <ComboBox fx:id="hashCombo" prefWidth="65.0" />
+                                            <Label text="Hash:" style="-fx-padding: 0 0 0 5;" />
+                                            <ComboBox fx:id="hashCombo" prefWidth="70.0" />
                                             <Label text="MB" />
                                             <Separator orientation="VERTICAL" />
-                                            <ComboBox fx:id="analysisModelCombo" prefWidth="80.0" />
-                                            <TextField fx:id="analysisValueField" prefWidth="50.0" />
+                                            <ComboBox fx:id="analysisModelCombo" prefWidth="85.0" />
+                                            <TextField fx:id="analysisValueField" prefWidth="60.0" promptText="值" />
                                         </ToolBar>
                                     </top>
                                     <center>
-                                        <ListView fx:id="engineOutput" />
+                                        <ListView fx:id="engineOutput" style="-fx-font-family: 'Consolas', monospace;" />
                                     </center>
                                 </BorderPane>
                             </AnchorPane>
-                            <AnchorPane>
-                                <TabPane tabClosingPolicy="UNAVAILABLE">
+
+                            <!-- 下方：库招和棋谱标签页 -->
+                            <AnchorPane minHeight="200.0">
+                                <TabPane tabClosingPolicy="UNAVAILABLE"
+                                        AnchorPane.topAnchor="0.0"
+                                        AnchorPane.bottomAnchor="0.0"
+                                        AnchorPane.leftAnchor="0.0"
+                                        AnchorPane.rightAnchor="0.0">
+
+                                    <!-- 库招标签页 -->
                                     <Tab text="库招">
                                         <BorderPane>
                                             <center>
                                                 <TableView fx:id="bookTable">
                                                     <columns>
-                                                        <TableColumn prefWidth="75.0" text="招法" />
-                                                        <TableColumn prefWidth="60.0" text="分数" />
-                                                        <TableColumn prefWidth="60.0" text="胜率" />
-                                                        <TableColumn prefWidth="80.0" text="备注" />
-                                                        <TableColumn prefWidth="70.0" text="来源" />
+                                                        <TableColumn fx:id="bookMoveCol" prefWidth="80.0" text="招法" resizable="true" />
+                                                        <TableColumn fx:id="bookScoreCol" prefWidth="55.0" text="分数" resizable="true" />
+                                                        <TableColumn fx:id="bookWinRateCol" prefWidth="55.0" text="胜率" resizable="true" />
+                                                        <TableColumn fx:id="bookWinCol" prefWidth="40.0" text="胜" resizable="true" />
+                                                        <TableColumn fx:id="bookDrawCol" prefWidth="40.0" text="和" resizable="true" />
+                                                        <TableColumn fx:id="bookLoseCol" prefWidth="40.0" text="负" resizable="true" />
+                                                        <TableColumn fx:id="bookRemarkCol" prefWidth="70.0" text="备注" resizable="true" />
+                                                        <TableColumn fx:id="bookSourceCol" prefWidth="60.0" text="来源" resizable="true" />
                                                     </columns>
+                                                    <columnResizePolicy>
+                                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                                    </columnResizePolicy>
                                                 </TableView>
                                             </center>
                                         </BorderPane>
                                     </Tab>
+
+                                    <!-- 评分趋势标签页 -->
+                                    <Tab text="趋势图">
+                                        <AnchorPane fx:id="trendChartPane"
+                                                   AnchorPane.topAnchor="0.0"
+                                                   AnchorPane.bottomAnchor="0.0"
+                                                   AnchorPane.leftAnchor="0.0"
+                                                   AnchorPane.rightAnchor="0.0">
+                                        </AnchorPane>
+                                    </Tab>
+
+                                    <!-- 棋谱标签页 -->
                                     <Tab text="棋谱">
                                         <BorderPane>
                                             <center>
                                                 <TableView fx:id="recordTable">
                                                     <columns>
-                                                        <TableColumn fx:id="numCol" prefWidth="50.0" text="序号" />
-                                                        <TableColumn fx:id="moveCol" prefWidth="95.0" text="着法" />
-                                                        <TableColumn fx:id="scoreCol" prefWidth="60.0" text="分数" />
+                                                        <TableColumn fx:id="numCol" prefWidth="50.0" text="序号" resizable="false" />
+                                                        <TableColumn fx:id="moveCol" prefWidth="100.0" text="着法" resizable="true" />
+                                                        <TableColumn fx:id="scoreCol" prefWidth="70.0" text="分数" resizable="true" />
                                                     </columns>
+                                                    <columnResizePolicy>
+                                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                                    </columnResizePolicy>
                                                 </TableView>
                                             </center>
+
+                                            <!-- 右侧注解面板 -->
                                             <right>
-                                                <VBox spacing="4" prefWidth="220">
-                                                    <Label text="注解:" />
-                                                    <TextArea fx:id="remarkText" prefHeight="80" wrapText="true" />
-                                                    <HBox spacing="4">
-                                                        <Button fx:id="tag1Btn" />
-                                                        <Button fx:id="tag2Btn" />
-                                                        <Button fx:id="tag3Btn" />
-                                                        <Button fx:id="tag4Btn" />
+                                                <VBox spacing="6.0" style="-fx-padding: 5;">
+                                                    <padding>
+                                                        <Insets top="5.0" right="5.0" bottom="5.0" left="5.0" />
+                                                    </padding>
+                                                    <Label text="注解:" style="-fx-font-weight: bold;" />
+                                                    <TextArea fx:id="remarkText" prefHeight="80.0" prefWidth="200.0"
+                                                             wrapText="true" promptText="输入注解..." />
+                                                    <HBox spacing="5.0">
+                                                        <Button fx:id="tag1Btn" prefWidth="45.0" />
+                                                        <Button fx:id="tag2Btn" prefWidth="45.0" />
+                                                        <Button fx:id="tag3Btn" prefWidth="45.0" />
+                                                        <Button fx:id="tag4Btn" prefWidth="45.0" />
                                                     </HBox>
+                                                    <Label text="变招:" style="-fx-font-weight: bold;" />
+                                                    <ListView fx:id="variationList" prefHeight="120.0" prefWidth="200.0" />
                                                 </VBox>
                                             </right>
+
+                                            <!-- 底部导航和操作工具栏 -->
                                             <bottom>
-                                                <ToolBar>
-                                                    <Button text="首" onAction="#onManualFirst" />
-                                                    <Button text="前" onAction="#onManualPrev" />
-                                                    <Button text="后" onAction="#onManualNext" />
-                                                    <Button text="末" onAction="#onManualLast" />
-                                                    <Separator orientation="VERTICAL" />
-                                                    <Button fx:id="playBtn" text="播放" onAction="#onManualPlay" />
-                                                    <Button fx:id="pauseBtn" text="暂停" onAction="#onManualPause" disable="true" />
-                                                    <Separator orientation="VERTICAL" />
-                                                    <Button text="删除" onAction="#onManualDelete" />
-                                                    <Button text="打开" onAction="#onManualOpen" />
-                                                    <Button text="保存" onAction="#onManualSave" />
-                                                </ToolBar>
                                                 <VBox>
-                                                    <Label fx:id="manualInfoLabel" />
+                                                    <ToolBar prefHeight="32.0">
+                                                        <Button text="首" onAction="#onManualFirst" prefWidth="40.0" />
+                                                        <Button text="前" onAction="#onManualPrev" prefWidth="40.0" />
+                                                        <Button text="后" onAction="#onManualNext" prefWidth="40.0" />
+                                                        <Button text="末" onAction="#onManualLast" prefWidth="40.0" />
+                                                        <Separator orientation="VERTICAL" />
+                                                        <Button fx:id="playBtn" text="播放" onAction="#onManualPlay" prefWidth="50.0" />
+                                                        <Button fx:id="pauseBtn" text="暂停" onAction="#onManualPause"
+                                                               disable="true" prefWidth="50.0" />
+                                                        <Separator orientation="VERTICAL" />
+                                                        <Button text="删除" onAction="#onManualDelete" prefWidth="50.0" />
+                                                        <Button text="打开" onAction="#onManualOpen" prefWidth="50.0" />
+                                                        <Button text="保存" onAction="#onManualSave" prefWidth="50.0" />
+                                                        <Separator orientation="VERTICAL" />
+                                                        <Button text="编辑信息" onAction="#onEditManualInfo" prefWidth="60.0" />
+                                                    </ToolBar>
+                                                    <HBox style="-fx-padding: 3 5 3 5;">
+                                                        <Label fx:id="manualInfoLabel" text="步数: 0/0" />
+                                                    </HBox>
                                                 </VBox>
                                             </bottom>
                                         </BorderPane>
@@ -136,14 +241,16 @@
                     </AnchorPane>
                 </SplitPane>
             </center>
+
+            <!-- 底部状态栏 -->
             <bottom>
-                <ToolBar prefHeight="27.0">
-                    <Label fx:id="statusLabel" />
+                <ToolBar prefHeight="30.0" style="-fx-background-color: #f4f4f4;">
+                    <Label fx:id="statusLabel" text="就绪" style="-fx-font-weight: bold;" />
                     <Separator orientation="VERTICAL" />
-                    <Label fx:id="turnLabel" />
+                    <Label fx:id="turnLabel" text="红方走棋" />
                     <Separator orientation="VERTICAL" />
                     <Label text="胜率:" />
-                    <Label fx:id="winRateLabel" />
+                    <Label fx:id="winRateLabel" text="50%" style="-fx-font-weight: bold;" />
                 </ToolBar>
             </bottom>
         </BorderPane>

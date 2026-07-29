@@ -19,13 +19,17 @@ import com.jiyi.service.AutomationService;
 import com.jiyi.service.BookService;
 import com.jiyi.service.DetectionService;
 import com.jiyi.service.ManualService;
+import com.jiyi.ui.component.BoardContextMenu;
+import com.jiyi.ui.component.TrendChartView;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.*;
 import javafx.scene.text.Font;
@@ -52,6 +56,38 @@ public class MainController {
         public javafx.beans.property.IntegerProperty numProperty() { return num; }
         public javafx.beans.property.StringProperty moveProperty() { return move; }
         public javafx.beans.property.StringProperty scoreProperty() { return score; }
+    }
+
+    public static class BookRow {
+        private final javafx.beans.property.StringProperty move = new javafx.beans.property.SimpleStringProperty();
+        private final javafx.beans.property.StringProperty score = new javafx.beans.property.SimpleStringProperty();
+        private final javafx.beans.property.StringProperty winRate = new javafx.beans.property.SimpleStringProperty();
+        private final javafx.beans.property.StringProperty win = new javafx.beans.property.SimpleStringProperty();
+        private final javafx.beans.property.StringProperty draw = new javafx.beans.property.SimpleStringProperty();
+        private final javafx.beans.property.StringProperty lose = new javafx.beans.property.SimpleStringProperty();
+        private final javafx.beans.property.StringProperty remark = new javafx.beans.property.SimpleStringProperty();
+        private final javafx.beans.property.StringProperty source = new javafx.beans.property.SimpleStringProperty();
+        public BookRow(String move, String score, String winRate, String win, String draw, String lose, String remark, String source) {
+            this.move.set(move); this.score.set(score); this.winRate.set(winRate);
+            this.win.set(win); this.draw.set(draw); this.lose.set(lose);
+            this.remark.set(remark); this.source.set(source);
+        }
+        public String getMove() { return move.get(); }
+        public String getScore() { return score.get(); }
+        public String getWinRate() { return winRate.get(); }
+        public String getWin() { return win.get(); }
+        public String getDraw() { return draw.get(); }
+        public String getLose() { return lose.get(); }
+        public String getRemark() { return remark.get(); }
+        public String getSource() { return source.get(); }
+        public javafx.beans.property.StringProperty moveProperty() { return move; }
+        public javafx.beans.property.StringProperty scoreProperty() { return score; }
+        public javafx.beans.property.StringProperty winRateProperty() { return winRate; }
+        public javafx.beans.property.StringProperty winProperty() { return win; }
+        public javafx.beans.property.StringProperty drawProperty() { return draw; }
+        public javafx.beans.property.StringProperty loseProperty() { return lose; }
+        public javafx.beans.property.StringProperty remarkProperty() { return remark; }
+        public javafx.beans.property.StringProperty sourceProperty() { return source; }
     }
 
     @Inject private EventBus eventBus;
@@ -83,7 +119,15 @@ public class MainController {
     @FXML private Button playBtn;
     @FXML private Button pauseBtn;
     @FXML private Label manualInfoLabel;
-    @FXML private TableView<String> bookTable;
+    @FXML private TableView<BookRow> bookTable;
+    @FXML private TableColumn<MainController.BookRow, String> bookMoveCol;
+    @FXML private TableColumn<MainController.BookRow, String> bookScoreCol;
+    @FXML private TableColumn<MainController.BookRow, String> bookWinRateCol;
+    @FXML private TableColumn<MainController.BookRow, String> bookWinCol;
+    @FXML private TableColumn<MainController.BookRow, String> bookDrawCol;
+    @FXML private TableColumn<MainController.BookRow, String> bookLoseCol;
+    @FXML private TableColumn<MainController.BookRow, String> bookRemarkCol;
+    @FXML private TableColumn<MainController.BookRow, String> bookSourceCol;
     @FXML private Label statusLabel;
     @FXML private Label turnLabel;
     @FXML private Label winRateLabel;
@@ -93,11 +137,25 @@ public class MainController {
     @FXML private Button analysisButton;
     @FXML private Button flipButton;
     @FXML private Button linkWindowBtn;
+    @FXML private ComboBox<String> linkModeCombo;
     @FXML private Button linkStartBtn;
     @FXML private Button linkStopBtn;
     @FXML private Label linkStatusLabel;
+    @FXML private AnchorPane trendChartPane;
+    @FXML private Button immediateMoveButton;
+    @FXML private Button alternativeMoveButton;
+    @FXML private ToggleButton bookSwitchToggle;
+    @FXML private ListView<String> variationList;
+    @FXML private RadioMenuItem boardSizeLarge;
+    @FXML private RadioMenuItem boardSizeMedium;
+    @FXML private RadioMenuItem boardSizeSmall;
+    @FXML private RadioMenuItem boardSizeAuto;
+    @FXML private ToggleGroup boardSizeGroup;
+    @FXML private CheckMenuItem topWindowMenuItem;
+    @FXML private CheckMenuItem stepNumbersMenuItem;
 
     private volatile long linkWindowHwnd;
+    private TrendChartView trendChartView;
     private Stage stage;
     private int selectedRow = -1, selectedCol = -1;
     private Move lastMove;
@@ -107,6 +165,7 @@ public class MainController {
     private volatile boolean engineThinking;
     private String engineSide = ""; // "red", "black", ""
     private boolean initialized;
+    private boolean showStepNumbers = false;
 
     @FXML
     public void initialize() {
@@ -121,6 +180,9 @@ public class MainController {
             redrawBoard(e.board());
             turnLabel.setText("红方走棋");
             statusLabel.setText("新局");
+            if (trendChartView != null) {
+                trendChartView.clear();
+            }
         }, EventBus.Dispatch.PLATFORM);
         eventBus.register(GameEvent.BoardChanged.class, e -> {
             redrawBoard(e.board());
@@ -146,6 +208,10 @@ public class MainController {
             currentScore = d.score();
             currentIsRed = gameService.isRedToGo();
             updateWinRate();
+            // 更新趋势图
+            if (trendChartView != null && recordTable.getItems().size() > 0) {
+                trendChartView.addScore(recordTable.getItems().size(), d.score(), currentIsRed);
+            }
         }, EventBus.Dispatch.PLATFORM);
         eventBus.register(EngineEvent.EngineStarted.class, e -> {
             statusLabel.setText("引擎已启动: " + e.name());
@@ -165,13 +231,53 @@ public class MainController {
         threadCombo.setValue(4);
         hashCombo.getItems().addAll(16, 32, 64, 128, 256, 512, 1024, 2048, 4096);
         hashCombo.setValue(256);
+
+        // 线程/哈希变更时实时更新引擎配置
+        threadCombo.getSelectionModel().selectedItemProperty().addListener((obs, old, val) -> {
+            if (val == null) return;
+            var cfg = findSelectedEngine();
+            if (cfg != null && engineService.isRunning()) {
+                cfg.setThreads(val);
+                engineService.applyOptions();
+            }
+        });
+        hashCombo.getSelectionModel().selectedItemProperty().addListener((obs, old, val) -> {
+            if (val == null) return;
+            var cfg = findSelectedEngine();
+            if (cfg != null && engineService.isRunning()) {
+                cfg.setHash(val);
+                engineService.applyOptions();
+            }
+        });
         numCol.setCellValueFactory(cellData -> cellData.getValue().numProperty().asObject());
         moveCol.setCellValueFactory(cellData -> cellData.getValue().moveProperty());
         scoreCol.setCellValueFactory(cellData -> cellData.getValue().scoreProperty());
 
+        // 库招表格列绑定
+        bookTable.getItems().clear();
+        bookMoveCol.setCellValueFactory(cd -> cd.getValue().moveProperty());
+        bookScoreCol.setCellValueFactory(cd -> cd.getValue().scoreProperty());
+        bookWinRateCol.setCellValueFactory(cd -> cd.getValue().winRateProperty());
+        bookWinCol.setCellValueFactory(cd -> cd.getValue().winProperty());
+        bookDrawCol.setCellValueFactory(cd -> cd.getValue().drawProperty());
+        bookLoseCol.setCellValueFactory(cd -> cd.getValue().loseProperty());
+        bookRemarkCol.setCellValueFactory(cd -> cd.getValue().remarkProperty());
+        bookSourceCol.setCellValueFactory(cd -> cd.getValue().sourceProperty());
+
+        // 开局库开关初始化
+        bookSwitchToggle.setSelected(config.book().bookSwitch());
+
+        // 棋盘大小初始化
+        initBoardSizeMenu();
+
         analysisModelCombo.getItems().addAll("固定时间", "固定深度", "无限");
         analysisModelCombo.setValue("固定时间");
         analysisValueField.setText("5000");
+
+        // 连线模式选择
+        linkModeCombo.getItems().addAll("自动走棋", "观战模式");
+        linkModeCombo.setValue("自动走棋");
+
         engineCombo.getSelectionModel().selectedItemProperty().addListener((obs, old, name) -> {
             if (name == null || name.equals("(无引擎)")) return;
             config.engine().list().stream()
@@ -183,11 +289,18 @@ public class MainController {
         gameService.startNewGame();
         manualService.startNewRecord();
         setupTagButtons();
+        setupVariationList();
+        initializeTrendChart();
+        setupContextMenu();
     }
 
     public void initialize(Stage stage) {
         this.stage = stage;
         initAccelerators(stage);
+        // 窗口置顶：从配置读取并应用
+        boolean topWindow = config.app().topWindow();
+        stage.setAlwaysOnTop(topWindow);
+        if (topWindowMenuItem != null) topWindowMenuItem.setSelected(topWindow);
         log.info("极弈 started");
     }
 
@@ -295,12 +408,18 @@ public class MainController {
             analysisButton.setText("分析");
             engineRedButton.setText("引擎红");
             engineBlackButton.setText("引擎黑");
+            engineRedButton.setDisable(false);
+            engineBlackButton.setDisable(false);
+            immediateMoveButton.setDisable(false);
         } else {
             engineSide = "all";
             if (!startEngine(cfg)) return;
             engineThinking = true;
             engineService.analyze(gameService.getCurrentBoard(), gameService.isRedToGo());
             analysisButton.setText("停止");
+            engineRedButton.setDisable(true);
+            engineBlackButton.setDisable(true);
+            immediateMoveButton.setDisable(true);
         }
     }
 
@@ -314,17 +433,44 @@ public class MainController {
 
     @FXML
     public void onLinkSelectWindow() {
+        log.info("onLinkSelectWindow called");
         linkStatusLabel.setText("请点击目标窗口...");
-        var wp = (WindowsPlatform) com.jiyi.di.AppModule.getInjector()
-            .getInstance(com.jiyi.infra.platform.Platform.class);
-        wp.startWindowSelection(hwnd -> {
-            linkWindowHwnd = hwnd;
-            javafx.application.Platform.runLater(() -> {
-                linkStatusLabel.setText("已选窗口: 0x" + Long.toHexString(hwnd));
-                linkStartBtn.setDisable(false);
-                linkWindowBtn.setDisable(true);
+
+        try {
+            var platform = com.jiyi.di.AppModule.getInjector()
+                .getInstance(com.jiyi.infra.platform.Platform.class);
+            log.info("Platform instance obtained: {}", platform.getClass().getName());
+
+            if (!(platform instanceof WindowsPlatform)) {
+                log.error("Platform is not WindowsPlatform: {}", platform.getClass().getName());
+                linkStatusLabel.setText("仅支持 Windows 平台");
+                return;
+            }
+
+            var wp = (WindowsPlatform) platform;
+            log.info("Starting window selection via WindowsPlatform");
+
+            wp.startWindowSelection(hwnd -> {
+                log.info("Window selection callback invoked with hwnd: 0x{}", Long.toHexString(hwnd));
+                linkWindowHwnd = hwnd;
+
+                // 必须在 JavaFX 线程中更新 UI
+                javafx.application.Platform.runLater(() -> {
+                    log.info("Updating UI on JavaFX thread");
+                    linkStatusLabel.setText("已选窗口: 0x" + Long.toHexString(hwnd));
+                    linkStartBtn.setDisable(false);
+                    linkWindowBtn.setDisable(true);
+                    statusLabel.setText("窗口选择成功");
+                    log.info("UI updated successfully");
+                });
             });
-        });
+
+            log.info("Window selection initiated");
+        } catch (Exception e) {
+            log.error("Failed to start window selection", e);
+            linkStatusLabel.setText("窗口选择失败: " + e.getMessage());
+            statusLabel.setText("错误: " + e.getMessage());
+        }
     }
 
     @FXML
@@ -334,12 +480,17 @@ public class MainController {
             linkStatusLabel.setText("检测启动失败（模型未加载）");
             return;
         }
-        automationService.start(false, false);
+        boolean isSpectator = "观战模式".equals(linkModeCombo.getValue());
+        automationService.start(false, isSpectator);
         linkStartBtn.setDisable(true);
         linkStopBtn.setDisable(false);
         linkWindowBtn.setDisable(true);
-        linkStatusLabel.setText("连线中...");
-        statusLabel.setText("连线模式已启动");
+        // 禁用引擎模式切换按钮，防止连线时切换模式
+        engineRedButton.setDisable(true);
+        engineBlackButton.setDisable(true);
+        analysisButton.setDisable(true);
+        linkStatusLabel.setText(isSpectator ? "观战模式..." : "连线中...");
+        statusLabel.setText(isSpectator ? "观战模式已启动" : "连线模式已启动");
     }
 
     @FXML
@@ -349,6 +500,10 @@ public class MainController {
         linkStartBtn.setDisable(false);
         linkStopBtn.setDisable(true);
         linkWindowBtn.setDisable(false);
+        // 恢复引擎按钮状态
+        engineRedButton.setDisable(false);
+        engineBlackButton.setDisable(false);
+        analysisButton.setDisable(false);
         linkStatusLabel.setText("连线已停止");
         statusLabel.setText("");
     }
@@ -473,6 +628,232 @@ public class MainController {
         }
     }
 
+    private void setupVariationList() {
+        if (variationList == null) return;
+        variationList.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                int selIdx = variationList.getSelectionModel().getSelectedIndex();
+                if (selIdx < 0) return;
+                int moveIdx = manualService.currentIndex();
+                var variations = manualService.getVariations(moveIdx);
+                if (selIdx < variations.size()) {
+                    manualService.navigateToVariation(moveIdx, selIdx);
+                    // 刷新棋盘
+                    Board b = manualService.getCurrentBoard();
+                    eventBus.post(new GameEvent.BoardChanged(b));
+                    redrawBoard(b);
+                    updateManualInfo();
+                    updateVariationList();
+                    statusLabel.setText("已切换到变招 " + (selIdx + 1));
+                }
+            }
+        });
+    }
+
+    private void updateVariationList() {
+        if (variationList == null) return;
+        variationList.getItems().clear();
+        int moveIdx = manualService.currentIndex();
+        var variations = manualService.getVariations(moveIdx);
+        for (int i = 0; i < variations.size(); i++) {
+            var v = variations.get(i);
+            String display = (i + 1) + ". " + v.moveUci();
+            if (!v.chineseMove().isEmpty()) {
+                display += " (" + v.chineseMove() + ")";
+            }
+            if (!v.remark().isEmpty()) {
+                display += " " + v.remark();
+            }
+            variationList.getItems().add(display);
+        }
+    }
+
+    @FXML
+    public void onBookSwitch() {
+        boolean enabled = bookSwitchToggle.isSelected();
+        config.book().setBookSwitch(enabled);
+        configManager.saveAsync();
+        statusLabel.setText(enabled ? "开局库已开启" : "开局库已关闭");
+    }
+
+    @FXML
+    public void onBoardSizeSelected() {
+        RadioMenuItem selected = (RadioMenuItem) boardSizeGroup.getSelectedToggle();
+        if (selected == null) return;
+        String size;
+        if (selected == boardSizeLarge) size = "large";
+        else if (selected == boardSizeMedium) size = "medium";
+        else if (selected == boardSizeSmall) size = "small";
+        else size = "autofit";
+
+        config.board().setSize(size);
+        configManager.saveAsync();
+
+        applyBoardSize(size);
+        statusLabel.setText("棋盘大小: " + selected.getText());
+    }
+
+    private void initBoardSizeMenu() {
+        String size = config.board().size();
+        switch (size) {
+            case "large" -> boardSizeLarge.setSelected(true);
+            case "medium" -> boardSizeMedium.setSelected(true);
+            case "small" -> boardSizeSmall.setSelected(true);
+            default -> boardSizeAuto.setSelected(true);
+        }
+        applyBoardSize(size);
+    }
+
+    private void applyBoardSize(String size) {
+        double w, h;
+        switch (size) {
+            case "large"  -> { w = 700.0; h = 760.0; }
+            case "medium" -> { w = 600.0; h = 650.0; }
+            case "small"  -> { w = 480.0; h = 520.0; }
+            default -> {
+                // 自适应：根据父容器宽度计算
+                var parent = boardCanvas.getParent();
+                if (parent != null && parent.getLayoutBounds().getWidth() > 0) {
+                    double pw = parent.getLayoutBounds().getWidth() - 10;
+                    w = Math.max(400.0, Math.min(pw, 700.0));
+                } else {
+                    w = 600.0;
+                }
+                h = w * 650.0 / 600.0;
+            }
+        }
+        boardCanvas.setWidth(w);
+        boardCanvas.setHeight(h);
+        redrawBoard(gameService.getCurrentBoard());
+    }
+
+    private void initializeTrendChart() {
+        if (trendChartPane == null) return;
+        trendChartView = new TrendChartView();
+        var chart = trendChartView.getChart();
+        AnchorPane.setTopAnchor(chart, 0.0);
+        AnchorPane.setBottomAnchor(chart, 0.0);
+        AnchorPane.setLeftAnchor(chart, 0.0);
+        AnchorPane.setRightAnchor(chart, 0.0);
+        trendChartPane.getChildren().add(chart);
+
+        // 设置点击事件，双击趋势图数据点可以跳转到对应步数
+        trendChartView.setOnPointClicked(moveNum -> {
+            manualNavigateTo(moveNum - 1);
+        });
+    }
+
+    private void setupContextMenu() {
+        if (boardCanvas == null) return;
+        boardCanvas.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.SECONDARY) {
+                showContextMenu(event);
+            } else if (event.getButton() == MouseButton.PRIMARY) {
+                onCanvasClicked(event);
+            }
+        });
+    }
+
+    private void showContextMenu(MouseEvent event) {
+        var contextMenu = new BoardContextMenu(
+            gameService.getCurrentBoard(),
+            gameService.isRedToGo(),
+            v -> onEditBoard(),
+            v -> flipBoard(),
+            v -> onAlternativeMove(),
+            v -> onManualDelete(),
+            v -> exportImage(),
+            v -> copyImage()
+        );
+        contextMenu.show(boardCanvas, event.getScreenX(), event.getScreenY());
+    }
+
+    @FXML
+    public void onTimeSettings() {
+        try {
+            var loader = new FXMLLoader(getClass().getResource("/fxml/time_settings.fxml"));
+            loader.setControllerFactory(com.jiyi.di.AppModule.getInjector()::getInstance);
+            var scene = new Scene(loader.load());
+            var win = new Stage();
+            win.setTitle("时间设置");
+            win.setScene(scene);
+            win.initModality(Modality.WINDOW_MODAL);
+            win.initOwner(stage);
+            win.showAndWait();
+        } catch (Exception e) {
+            log.error("Failed to open time settings", e);
+            statusLabel.setText("打开时间设置失败");
+        }
+    }
+
+    @FXML
+    public void onLinkSettings() {
+        try {
+            var loader = new FXMLLoader(getClass().getResource("/fxml/link_settings.fxml"));
+            loader.setControllerFactory(com.jiyi.di.AppModule.getInjector()::getInstance);
+            var scene = new Scene(loader.load());
+            var win = new Stage();
+            win.setTitle("连线设置");
+            win.setScene(scene);
+            win.initModality(Modality.WINDOW_MODAL);
+            win.initOwner(stage);
+            win.showAndWait();
+        } catch (Exception e) {
+            log.error("Failed to open link settings", e);
+            statusLabel.setText("打开连线设置失败");
+        }
+    }
+
+    @FXML
+    public void onBookSettings() {
+        try {
+            var loader = new FXMLLoader(getClass().getResource("/fxml/book_settings.fxml"));
+            loader.setControllerFactory(com.jiyi.di.AppModule.getInjector()::getInstance);
+            var scene = new Scene(loader.load());
+            var win = new Stage();
+            win.setTitle("开局库设置");
+            win.setScene(scene);
+            win.initModality(Modality.WINDOW_MODAL);
+            win.initOwner(stage);
+            win.showAndWait();
+        } catch (Exception e) {
+            log.error("Failed to open book settings", e);
+            statusLabel.setText("打开开局库设置失败");
+        }
+    }
+
+    @FXML
+    public void onEditBoard() {
+        try {
+            var loader = new FXMLLoader(getClass().getResource("/fxml/edit_board.fxml"));
+            loader.setControllerFactory(com.jiyi.di.AppModule.getInjector()::getInstance);
+            var scene = new Scene(loader.load());
+            var win = new Stage();
+            win.setTitle("编辑局面");
+            win.setScene(scene);
+            win.initModality(Modality.WINDOW_MODAL);
+            win.initOwner(stage);
+
+            // 获取控制器并传递当前局面
+            var controller = (com.jiyi.ui.controller.EditBoardController) loader.getController();
+            controller.setBoard(gameService.getCurrentBoard(), gameService.isRedToGo());
+
+            win.showAndWait();
+
+            // 如果用户确认了修改，更新当前局面
+            if (controller.isConfirmed()) {
+                gameService.loadFen(controller.getFen());
+                statusLabel.setText("局面已更新");
+                if (trendChartView != null) {
+                    trendChartView.clear();
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to open edit board", e);
+            statusLabel.setText("打开编辑局面失败");
+        }
+    }
+
     private boolean startEngine(EngineConfig cfg) {
         if (engineService.isRunning()) engineService.stopEngine();
         cfg.setThreads(threadCombo.getValue());
@@ -503,7 +884,77 @@ public class MainController {
     @FXML
     public void exit() {
         if (engineService.isRunning()) engineService.stopEngine();
-        if (stage != null) stage.close();
+        if (stage != null) {
+            config.app().setTopWindow(stage.isAlwaysOnTop());
+            configManager.saveAsync();
+            stage.close();
+        }
+    }
+
+    @FXML
+    public void onToggleTopWindow() {
+        boolean selected = topWindowMenuItem.isSelected();
+        config.app().setTopWindow(selected);
+        if (stage != null) stage.setAlwaysOnTop(selected);
+        configManager.saveAsync();
+    }
+
+    @FXML
+    public void onToggleStepNumbers() {
+        showStepNumbers = stepNumbersMenuItem.isSelected();
+        redrawBoard(gameService.getCurrentBoard());
+    }
+
+    @FXML
+    public void onEditManualInfo() {
+        var record = manualService.getRecord();
+
+        var dialog = new Dialog<String>();
+        dialog.setTitle("编辑棋谱信息");
+        dialog.setHeaderText("编辑赛事元数据");
+
+        var btnType = new ButtonType("确定", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnType, ButtonType.CANCEL);
+
+        var grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new javafx.geometry.Insets(20, 40, 10, 10));
+
+        var eventField = new TextField(record.eventName());
+        var siteField = new TextField(record.site());
+        var dateField = new TextField(record.date());
+        var redField = new TextField(record.redPlayer());
+        var blackField = new TextField(record.blackPlayer());
+
+        grid.add(new Label("赛事名称:"), 0, 0);
+        grid.add(eventField, 1, 0);
+        grid.add(new Label("城市/地点:"), 0, 1);
+        grid.add(siteField, 1, 1);
+        grid.add(new Label("日期:"), 0, 2);
+        grid.add(dateField, 1, 2);
+        grid.add(new Label("红方:"), 0, 3);
+        grid.add(redField, 1, 3);
+        grid.add(new Label("黑方:"), 0, 4);
+        grid.add(blackField, 1, 4);
+
+        eventField.setPrefWidth(250);
+        siteField.setPrefWidth(250);
+        dateField.setPrefWidth(250);
+        redField.setPrefWidth(250);
+        blackField.setPrefWidth(250);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(btn -> btn == btnType ? "ok" : null);
+
+        dialog.showAndWait().ifPresent(result -> {
+            manualService.setMetadata(
+                eventField.getText(), siteField.getText(),
+                redField.getText(), blackField.getText(), "");
+            manualService.getRecord().setDate(dateField.getText());
+            statusLabel.setText("棋谱信息已更新");
+        });
     }
 
     @FXML
@@ -535,6 +986,67 @@ public class MainController {
     }
 
     @FXML
+    public void onImmediateMove() {
+        if (!engineService.isRunning()) {
+            statusLabel.setText("引擎未启动");
+            return;
+        }
+        engineService.stopThinkingAndMove();
+        statusLabel.setText("立即出招");
+    }
+
+    @FXML
+    public void onAlternativeMove() {
+        if (!engineService.isRunning()) {
+            statusLabel.setText("引擎未启动");
+            return;
+        }
+        // 排除当前最佳着法，分析次优着法
+        Move lastMove = engineService.getLastBestMove();
+        if (lastMove != null) {
+            engineService.analyzeWithExcludedMoves(
+                gameService.getCurrentBoard(),
+                gameService.isRedToGo(),
+                java.util.List.of(lastMove)
+            );
+            statusLabel.setText("分析变招中（排除 " + lastMove.toUci() + "）");
+        } else {
+            // 没有最佳着法记录，使用标准分析
+            engineService.analyze(gameService.getCurrentBoard(), gameService.isRedToGo());
+            statusLabel.setText("分析中...");
+        }
+    }
+
+    @FXML
+    public void exportImage() {
+        var fc = new javafx.stage.FileChooser();
+        fc.setTitle("导出图片");
+        fc.getExtensionFilters().add(
+            new javafx.stage.FileChooser.ExtensionFilter("PNG图片", "*.png")
+        );
+        fc.setInitialFileName("棋盘.png");
+        var file = fc.showSaveDialog(root.getScene().getWindow());
+        if (file == null) return;
+
+        boolean success = com.jiyi.infra.util.BoardImageExporter.exportToPng(boardCanvas, file);
+        if (success) {
+            statusLabel.setText("已导出: " + file.getName());
+        } else {
+            statusLabel.setText("导出失败");
+        }
+    }
+
+    @FXML
+    public void copyImage() {
+        boolean success = com.jiyi.infra.util.BoardImageExporter.copyToClipboard(boardCanvas);
+        if (success) {
+            statusLabel.setText("图片已复制到剪贴板");
+        } else {
+            statusLabel.setText("复制失败");
+        }
+    }
+
+    @FXML
     public void onCanvasClicked(MouseEvent e) {
         if (engineThinking) return;
         Board board = gameService.getCurrentBoard();
@@ -543,6 +1055,12 @@ public class MainController {
         if (grid == null) return;
         int row = grid[0], col = grid[1];
         if (isReverse) { row = 9 - row; col = 8 - col; }
+
+        // 添加反转后的边界检查
+        if (row < 0 || row > 9 || col < 0 || col > 8) {
+            log.warn("Invalid position after reverse: ({}, {})", row, col);
+            return;
+        }
 
         if (selectedRow == -1) {
             char piece = board.pieceAt(row, col);
@@ -573,6 +1091,8 @@ public class MainController {
         recordTable.getItems().add(new MoveRow(moveNum, event.move().toUci(), ""));
         recordTable.scrollTo(recordTable.getItems().size() - 1);
         turnLabel.setText(event.isRed() ? "黑方走棋" : "红方走棋");
+        // 更新变招列表
+        updateVariationList();
         if (engineService.isRunning() && isEngineTurn()) {
             engineThinking = true;
             engineService.analyze(event.board(), gameService.isRedToGo());
@@ -703,6 +1223,16 @@ public class MainController {
                 gc.setLineWidth(2.5);
                 gc.strokeOval(sx - pieceR - 3, sy - pieceR - 3, (pieceR + 3) * 2, (pieceR + 3) * 2);
             }
+        }
+
+        // 步数提示
+        if (showStepNumbers) {
+            int stepCount = recordTable.getItems().size();
+            gc.setFill(Color.rgb(0, 0, 0, 0.6));
+            gc.setFont(Font.font("Consolas", cellH * 0.35));
+            gc.setTextAlign(TextAlignment.RIGHT);
+            gc.setTextBaseline(VPos.BOTTOM);
+            gc.fillText("第 " + stepCount + " 步", w - padding, h - padding);
         }
     }
 
