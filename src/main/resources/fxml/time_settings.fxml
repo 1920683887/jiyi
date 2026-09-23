@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane prefWidth="450.0" prefHeight="400.0"
+            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.jiyi.ui.controller.TimeSettingController">
+
+    <center>
+        <VBox spacing="15" style="-fx-padding: 20;">
+
+            <!-- 引擎延迟设置 -->
+            <TitledPane text="引擎出招延迟（防检测）" collapsible="false">
+                <GridPane hgap="10" vgap="10">
+                    <Label text="延迟起始时间:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <Spinner fx:id="engineDelayStartSpinner" prefWidth="100"
+                             GridPane.rowIndex="0" GridPane.columnIndex="1" editable="true" />
+                    <Label text="ms" GridPane.rowIndex="0" GridPane.columnIndex="2" />
+
+                    <Label text="延迟结束时间:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <Spinner fx:id="engineDelayEndSpinner" prefWidth="100"
+                             GridPane.rowIndex="1" GridPane.columnIndex="1" editable="true" />
+                    <Label text="ms" GridPane.rowIndex="1" GridPane.columnIndex="2" />
+
+                    <Label text="说明: 每次出招前随机延迟（范围内）"
+                           GridPane.rowIndex="2" GridPane.columnIndex="0" GridPane.columnSpan="3"
+                           style="-fx-text-fill: gray; -fx-font-size: 10;" />
+                </GridPane>
+            </TitledPane>
+
+            <!-- 库招延迟设置 -->
+            <TitledPane text="库招延迟" collapsible="false">
+                <GridPane hgap="10" vgap="10">
+                    <Label text="延迟起始时间:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <Spinner fx:id="bookDelayStartSpinner" prefWidth="100"
+                             GridPane.rowIndex="0" GridPane.columnIndex="1" editable="true" />
+                    <Label text="ms" GridPane.rowIndex="0" GridPane.columnIndex="2" />
+
+                    <Label text="延迟结束时间:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <Spinner fx:id="bookDelayEndSpinner" prefWidth="100"
+                             GridPane.rowIndex="1" GridPane.columnIndex="1" editable="true" />
+                    <Label text="ms" GridPane.rowIndex="1" GridPane.columnIndex="2" />
+                </GridPane>
+            </TitledPane>
+
+            <!-- 鼠标点击间隔 -->
+            <TitledPane text="鼠标操作" collapsible="false">
+                <GridPane hgap="10" vgap="10">
+                    <Label text="点击间隔:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <Spinner fx:id="mouseClickIntervalSpinner" prefWidth="100"
+                             GridPane.rowIndex="0" GridPane.columnIndex="1" editable="true" />
+                    <Label text="ms" GridPane.rowIndex="0" GridPane.columnIndex="2" />
+                </GridPane>
+            </TitledPane>
+
+            <!-- 分析模式设置 -->
+            <TitledPane text="引擎分析模式" collapsible="false">
+                <GridPane hgap="10" vgap="10">
+                    <Label text="分析模式:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <ComboBox fx:id="analysisModeComboBox" prefWidth="150"
+                              GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                    <Label text="分析值:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <TextField fx:id="analysisValueField" prefWidth="100"
+                               GridPane.rowIndex="1" GridPane.columnIndex="1" />
+                    <Label text="(时间ms/深度层)" GridPane.rowIndex="1" GridPane.columnIndex="2"
+                           style="-fx-text-fill: gray; -fx-font-size: 10;" />
+                </GridPane>
+            </TitledPane>
+
+        </VBox>
+    </center>
+
+    <bottom>
+        <HBox spacing="10" alignment="CENTER" style="-fx-padding: 10;">
+            <Button text="确定" onAction="#onConfirm" prefWidth="100"
+                    style="-fx-background-color: #4CAF50; -fx-text-fill: white;" />
+            <Button text="取消" onAction="#onCancel" prefWidth="100" />
+        </HBox>
+    </bottom>
+
+</BorderPane>

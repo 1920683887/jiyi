@@ -12,33 +12,50 @@ public class AutoClicker {
     private final Platform platform;
     private Rectangle lastBoardRect;
     private int clickDelayMs = DEFAULT_DELAY_MS;
+    /** 两次点击之间的移动延迟（对齐 TCHESS mouseMoveDelay） */
+    private int moveDelayMs = 0;
+    /** 后台点击模式（PostMessage），由 config.link().backMode 驱动 */
+    private boolean backMode = false;
 
     public AutoClicker(Platform platform) {
         this.platform = platform;
     }
 
+    public void setBackMode(boolean backMode) { this.backMode = backMode; }
+
+    public void setMoveDelay(int ms) { this.moveDelayMs = Math.max(0, ms); }
+
     public void setBoardRect(Rectangle rect) {
         this.lastBoardRect = rect;
     }
 
+    public Rectangle getBoardRect() { return lastBoardRect; }
+
     public void setClickDelay(int ms) { this.clickDelayMs = ms; }
 
-    public void click(Move move, boolean flipped) {
-        if (lastBoardRect == null) return;
+    /** @return false=任一次点击未发出（窗口失效/注入失败），上层不应推进局面 */
+    public boolean click(Move move, boolean flipped) {
+        if (lastBoardRect == null) return false;
 
-        // First click on the source (select piece)
         var from = boardToScreen(move.fromRow(), move.fromCol(), flipped);
-        platform.mouseClick(null, from, Platform.ClickMode.FRONT);
-        sleep(clickDelayMs);
-
-        // Then click on the destination (drop piece)
         var to = boardToScreen(move.toRow(), move.toCol(), flipped);
-        platform.mouseClick(null, to, Platform.ClickMode.FRONT);
+
+        Platform.ClickMode mode = backMode ? Platform.ClickMode.BACK : Platform.ClickMode.FRONT;
+
+        // First click to select the piece at 'from'（两次独立点击模拟选中+落子）
+        boolean ok = platform.mouseClick(null, from, mode);
+        sleep(clickDelayMs);
+        if (moveDelayMs > 0) sleep(moveDelayMs);
+
+        // Second click to move the piece to 'to'
+        ok &= platform.mouseClick(null, to, mode);
+        return ok;
     }
 
     public void clickCell(int row, int col, boolean flipped) {
         var pt = boardToScreen(row, col, flipped);
-        platform.mouseClick(null, pt, Platform.ClickMode.FRONT);
+        Platform.ClickMode mode = backMode ? Platform.ClickMode.BACK : Platform.ClickMode.FRONT;
+        platform.mouseClick(null, pt, mode);
     }
 
     private void sleep(long ms) {
@@ -49,14 +66,12 @@ public class AutoClicker {
         var r = lastBoardRect;
         int fr = flipped ? 9 - row : row;
         int fc = flipped ? 8 - col : col;
-        double cellW = r.width / 9.6;
-        double cellH = r.height / 10.6;
-        double px = r.x + 0.8 * cellW + fc * cellW + cellW / 2;
-        double py = r.y + 0.8 * cellH + fr * cellH + cellH / 2;
-        if (fc == 0) px += 0.2 * cellW;
-        else if (fc == 8) px -= 0.2 * cellW;
-        if (fr == 0) py += 0.2 * cellH;
-        else if (fr == 9) py -= 0.2 * cellH;
+        // 对齐 C++ clickMap（LinkCore.cpp:416-417）：格点 = boardRegion.x + col*cellW，
+        // cellW = boardRegion.w/8。直接点交叉点，无边缘偏移。
+        double cellW = r.width / 8.0;
+        double cellH = r.height / 9.0;
+        double px = r.x + fc * cellW;
+        double py = r.y + fr * cellH;
         return new Point((int) px, (int) py);
     }
 }

@@ -16,6 +16,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>21</java.version>
         <javafx.version>23.0.1</javafx.version>
+        <javafx.platform>win</javafx.platform>
         <onnxruntime.version>1.19.2</onnxruntime.version>
         <jna.version>5.15.0</jna.version>
         <jnativehook.version>2.1.0</jnativehook.version>
@@ -23,6 +24,7 @@
         <jackson.version>2.17.0</jackson.version>
         <logback.version>1.5.6</logback.version>
         <guice.version>7.0.0</guice.version>
+        <exec.mainClass>com.jiyi.Main</exec.mainClass>
         <junit.version>5.10.2</junit.version>
         <mockito.version>5.11.0</mockito.version>
     </properties>
@@ -33,16 +35,25 @@
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-media</artifactId>
             <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-swing</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
         </dependency>
 
         <!-- ONNX Runtime -->
@@ -64,11 +75,11 @@
             <version>${jna.version}</version>
         </dependency>
 
-        <!-- JNativeHook -->
+        <!-- JNativeHook (与TCHESS一致) -->
         <dependency>
-            <groupId>com.github.kwhat</groupId>
+            <groupId>com.1stleg</groupId>
             <artifactId>jnativehook</artifactId>
-            <version>2.2.2</version>
+            <version>2.1.0</version>
         </dependency>
 
         <!-- SQLite -->
@@ -155,7 +166,8 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.1</version>
                 <configuration>
-                    <mainClass>com.jiyi.Main</mainClass>
+                    <!-- 属性占位符：默认 com.jiyi.Main，可用 -Dexec.mainClass 覆盖（诊断工具等） -->
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
 

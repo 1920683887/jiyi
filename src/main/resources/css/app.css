@@ -1,48 +1,351 @@
+/* ===== 全局样式 ===== */
 .root {
-    -fx-font-family: "Microsoft YaHei", "SimSun", sans-serif;
+    -fx-font-family: "Microsoft YaHei", "SimSun", "PingFang SC", "Helvetica Neue", sans-serif;
+    -fx-font-size: 13px;
+    -fx-base: #f5f5f5;
+    -fx-background: #ffffff;
+    -fx-accent: #0078d7;
+}
+
+/* ===== 菜单栏样式 ===== */
+.menu-bar {
+    -fx-background-color: #f0f0f0;
+    -fx-padding: 2px 5px;
+    -fx-border-color: #d0d0d0;
+    -fx-border-width: 0 0 1 0;
+}
+
+.menu-bar .label {
     -fx-font-size: 12px;
 }
 
-.menu-bar {
-    -fx-background-color: #f0f0f0;
-    -fx-padding: 2px;
+.menu-item {
+    -fx-padding: 5px 10px;
 }
 
+.menu-item:focused {
+    -fx-background-color: #0078d7;
+    -fx-text-fill: white;
+}
+
+/* ===== 工具栏样式 ===== */
 .tool-bar {
-    -fx-background-color: #f8f8f8;
-    -fx-padding: 4px;
-    -fx-spacing: 4px;
+    -fx-background-color: linear-gradient(to bottom, #fafafa, #f0f0f0);
+    -fx-padding: 5px 8px;
+    -fx-spacing: 5px;
+    -fx-border-color: #d0d0d0;
+    -fx-border-width: 0 0 1 0;
 }
 
+.tool-bar .separator {
+    -fx-padding: 0 3px;
+}
+
+/* ===== 按钮样式 ===== */
+.button {
+    -fx-font-size: 12px;
+    -fx-padding: 5px 12px;
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #e8e8e8);
+    -fx-background-radius: 3px;
+    -fx-border-color: #adadad;
+    -fx-border-radius: 3px;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(to bottom, #f0f0f0, #e0e0e0);
+    -fx-border-color: #0078d7;
+}
+
+.button:pressed {
+    -fx-background-color: #d0d0d0;
+}
+
+.button:disabled {
+    -fx-opacity: 0.5;
+    -fx-cursor: default;
+}
+
+/* 激活状态的按钮（如引擎红、引擎黑） */
+.button.active {
+    -fx-background-color: linear-gradient(to bottom, #0078d7, #005a9e);
+    -fx-text-fill: white;
+    -fx-border-color: #004578;
+}
+
+.button.active:hover {
+    -fx-background-color: linear-gradient(to bottom, #0084f0, #0066b8);
+}
+
+/* ===== 分割面板样式 ===== */
 .split-pane {
     -fx-background-color: #e8e8e8;
+    -fx-padding: 0;
 }
 
+.split-pane > .split-pane-divider {
+    -fx-background-color: #c0c0c0;
+    -fx-padding: 0 1px 0 1px;
+}
+
+.split-pane:vertical > .split-pane-divider {
+    -fx-padding: 1px 0 1px 0;
+}
+
+/* ===== 表格样式 ===== */
 .table-view {
-    -fx-font-size: 11px;
+    -fx-font-size: 12px;
+    -fx-background-color: white;
+    -fx-border-color: #d0d0d0;
 }
 
-.list-view {
-    -fx-font-size: 11px;
+.table-view .column-header {
+    -fx-background-color: linear-gradient(to bottom, #f8f8f8, #e8e8e8);
+    -fx-padding: 5px;
+    -fx-font-weight: bold;
+    -fx-border-color: #d0d0d0;
 }
 
-.text-area {
-    -fx-font-size: 11px;
+.table-view .column-header-background {
+    -fx-background-color: #f0f0f0;
 }
 
-.tab-pane {
+.table-row-cell {
+    -fx-padding: 3px;
+    -fx-border-color: transparent;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #fafafa;
+}
+
+.table-row-cell:even {
     -fx-background-color: white;
 }
 
-.button {
+.table-row-cell:selected {
+    -fx-background-color: #cce8ff;
+    -fx-text-fill: black;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #e5f3ff;
+}
+
+.table-cell {
+    -fx-padding: 4px 6px;
+    -fx-alignment: center-left;
+}
+
+/* ===== 列表视图样式 ===== */
+.list-view {
     -fx-font-size: 11px;
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-background-color: white;
+    -fx-border-color: #d0d0d0;
+}
+
+.list-cell {
+    -fx-padding: 2px 5px;
+}
+
+.list-cell:filled:hover {
+    -fx-background-color: #e5f3ff;
+}
+
+.list-cell:filled:selected {
+    -fx-background-color: #0078d7;
+    -fx-text-fill: white;
+}
+
+/* ===== 文本区域样式 ===== */
+.text-area {
+    -fx-font-size: 12px;
+    -fx-font-family: "Microsoft YaHei", sans-serif;
+    -fx-background-color: white;
+    -fx-border-color: #d0d0d0;
+    -fx-border-radius: 2px;
+}
+
+.text-area .content {
+    -fx-background-color: white;
+    -fx-padding: 5px;
+}
+
+.text-area:focused {
+    -fx-border-color: #0078d7;
+}
+
+/* ===== 标签页样式 ===== */
+.tab-pane {
+    -fx-background-color: white;
+    -fx-border-color: #d0d0d0;
+}
+
+.tab-pane .tab-header-area {
+    -fx-background-color: #f5f5f5;
+}
+
+.tab {
+    -fx-background-color: #e8e8e8;
+    -fx-padding: 6px 15px;
+    -fx-background-radius: 3px 3px 0 0;
+    -fx-border-color: #c0c0c0;
+    -fx-border-width: 1 1 0 1;
+}
+
+.tab:selected {
+    -fx-background-color: white;
+    -fx-border-color: #0078d7;
+}
+
+.tab:hover {
+    -fx-background-color: #f0f0f0;
+}
+
+.tab .tab-label {
+    -fx-font-size: 12px;
+    -fx-alignment: center;
+}
+
+/* ===== 下拉框样式 ===== */
+.combo-box {
+    -fx-font-size: 12px;
+    -fx-background-color: white;
+    -fx-border-color: #adadad;
+    -fx-border-radius: 2px;
+}
+
+.combo-box:hover {
+    -fx-border-color: #0078d7;
+}
+
+.combo-box .list-cell {
     -fx-padding: 4px 8px;
 }
 
-.combo-box {
-    -fx-font-size: 11px;
+/* ===== 标签样式 ===== */
+.label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #333333;
 }
 
-.label {
-    -fx-font-size: 11px;
+.label.status-label {
+    -fx-font-weight: bold;
+    -fx-padding: 0 5px;
 }
+
+/* ===== 文本输入框样式 ===== */
+.text-field {
+    -fx-font-size: 12px;
+    -fx-background-color: white;
+    -fx-border-color: #adadad;
+    -fx-border-radius: 2px;
+    -fx-padding: 4px 6px;
+}
+
+.text-field:focused {
+    -fx-border-color: #0078d7;
+    -fx-background-color: #f0f8ff;
+}
+
+/* ===== 滚动条样式 ===== */
+.scroll-bar {
+    -fx-background-color: #f0f0f0;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #c0c0c0;
+    -fx-background-radius: 5px;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #a0a0a0;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ===== 状态栏样式 ===== */
+.status-bar {
+    -fx-background-color: linear-gradient(to bottom, #f4f4f4, #e8e8e8);
+    -fx-border-color: #c0c0c0;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 4px 8px;
+}
+
+/* ===== 棋盘区域样式 ===== */
+.board-container {
+    -fx-background-color: #faf8f3;
+    -fx-border-color: #8b7355;
+    -fx-border-width: 2px;
+    -fx-padding: 10px;
+}
+
+/* ===== 引擎输出区域样式 ===== */
+.engine-output {
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 11px;
+    -fx-background-color: #1e1e1e;
+}
+
+.engine-output .list-cell {
+    -fx-text-fill: #d4d4d4;
+    -fx-background-color: transparent;
+}
+
+/* ===== 对话框样式 ===== */
+.dialog-pane {
+    -fx-background-color: white;
+    -fx-border-color: #0078d7;
+    -fx-border-width: 1px;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #0078d7;
+    -fx-padding: 10px;
+}
+
+.dialog-pane .header-panel .label {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.dialog-pane .content {
+    -fx-padding: 15px;
+}
+
+/* ===== 进度条样式 ===== */
+.progress-bar {
+    -fx-accent: #0078d7;
+}
+
+.progress-bar > .track {
+    -fx-background-color: #e0e0e0;
+}
+
+.progress-bar > .bar {
+    -fx-background-color: #0078d7;
+    -fx-background-radius: 2px;
+}
+
+/* ===== 工具栏滚动容器 ===== */
+.tool-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+.tool-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+.tool-scroll .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 10;
+}
+

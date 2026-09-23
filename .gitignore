@@ -5,3 +5,16 @@ logs/
 config.json
 license.dat
 !.mvn/wrapper/maven-wrapper.jar
+
+# 构建产物（GitHub Release 用，不入库）
+dist/
+
+# 个人开发资料（含本机路径等隐私信息，勿上传）
+docs/
+test-imgs/
+autoclick/
+今日工作总结.txt
+文档整理完成.txt
+最终交付总结-完整版.md
+集成总结.txt
+项目状态报告.md

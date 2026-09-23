@@ -8,6 +8,9 @@ import static com.jiyi.core.model.Piece.*;
 public class MoveValidator {
 
     public boolean canGo(Board board, Move move, boolean isRed) {
+        // 越界防护：from/to 任一越界直接返回 false，避免 pieceAt 抛异常冒泡到引擎线程
+        if (!inBounds(move.fromRow(), move.fromCol()) || !inBounds(move.toRow(), move.toCol()))
+            return false;
         char piece = board.pieceAt(move.fromRow(), move.fromCol());
         if (piece == ' ') return false;
         if (isRed != isRedChar(piece)) return false;
@@ -15,7 +18,7 @@ public class MoveValidator {
         char target = board.pieceAt(move.toRow(), move.toCol());
         if (target != ' ' && isRed == isRedChar(target)) return false;
 
-        return switch (Character.toLowerCase(piece)) {
+        boolean ok = switch (Character.toLowerCase(piece)) {
             case 'k' -> canKingGo(board, move, isRed);
             case 'a' -> canAdvisorGo(move, isRed);
             case 'b' -> canBishopGo(board, move, isRed);
@@ -25,6 +28,16 @@ public class MoveValidator {
             case 'p' -> canPawnGo(move, isRed);
             default -> false;
         };
+        if (!ok) return false;
+
+        // ★ 规则完整性：中国象棋将/帅不可被吃
+        if (target != ' ' && Character.toLowerCase(target) == 'k') return false;
+        // ★ 走后己方将不能处于被将军状态（拦截送将、将帅照面）
+        return !new CheckDetector().isInCheck(board.apply(move), isRed);
+    }
+
+    private boolean inBounds(int row, int col) {
+        return row >= 0 && row < 10 && col >= 0 && col < 9;
     }
 
     private boolean canKingGo(Board board, Move move, boolean isRed) {
@@ -66,6 +79,7 @@ public class MoveValidator {
             blockRow = move.fromRow();
             blockCol = move.fromCol() + (dc > 0 ? 1 : -1);
         }
+        if (!inBounds(blockRow, blockCol)) return false;
         return board.isEmpty(blockRow, blockCol);
     }
 

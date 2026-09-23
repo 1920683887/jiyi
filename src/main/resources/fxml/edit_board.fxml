@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.jiyi.ui.controller.EditBoardController"
+            prefHeight="700.0" prefWidth="900.0">
+
+    <!-- 顶部：FEN 显示和行棋方选择 -->
+    <top>
+        <VBox spacing="10" style="-fx-background-color: #f5f5f5; -fx-padding: 10;">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="FEN:" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                <TextField fx:id="fenTextField"
+                          HBox.hgrow="ALWAYS"
+                          editable="false"
+                          style="-fx-font-family: monospace;"/>
+            </HBox>
+
+            <HBox spacing="20" alignment="CENTER_LEFT">
+                <Label text="行棋方:" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                <RadioButton fx:id="redToMoveRadio" text="红方" selected="true">
+                    <toggleGroup>
+                        <ToggleGroup fx:id="sideToMoveGroup"/>
+                    </toggleGroup>
+                </RadioButton>
+                <RadioButton fx:id="blackToMoveRadio" text="黑方" toggleGroup="$sideToMoveGroup"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- 左侧：棋子选择区 -->
+    <left>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: white;">
+            <VBox spacing="15" style="-fx-padding: 15; -fx-background-color: white;">
+                <!-- 红方棋子 -->
+                <VBox spacing="8">
+                    <Label text="红方棋子" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #c8453c;"/>
+                    <GridPane fx:id="redPiecesGrid" hgap="8" vgap="8">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="60" prefWidth="60"/>
+                            <ColumnConstraints minWidth="60" prefWidth="60"/>
+                        </columnConstraints>
+
+                        <Button fx:id="redKingBtn" text="帅"
+                                GridPane.columnIndex="0" GridPane.rowIndex="0"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #ffebee; -fx-text-fill: #c8453c;"/>
+                        <Button fx:id="redAdvisorBtn" text="仕"
+                                GridPane.columnIndex="1" GridPane.rowIndex="0"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #ffebee; -fx-text-fill: #c8453c;"/>
+                        <Button fx:id="redBishopBtn" text="相"
+                                GridPane.columnIndex="0" GridPane.rowIndex="1"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #ffebee; -fx-text-fill: #c8453c;"/>
+                        <Button fx:id="redKnightBtn" text="馬"
+                                GridPane.columnIndex="1" GridPane.rowIndex="1"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #ffebee; -fx-text-fill: #c8453c;"/>
+                        <Button fx:id="redRookBtn" text="車"
+                                GridPane.columnIndex="0" GridPane.rowIndex="2"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #ffebee; -fx-text-fill: #c8453c;"/>
+                        <Button fx:id="redCannonBtn" text="炮"
+                                GridPane.columnIndex="1" GridPane.rowIndex="2"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #ffebee; -fx-text-fill: #c8453c;"/>
+                        <Button fx:id="redPawnBtn" text="兵"
+                                GridPane.columnIndex="0" GridPane.rowIndex="3"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #ffebee; -fx-text-fill: #c8453c;"/>
+                    </GridPane>
+                </VBox>
+
+                <!-- 黑方棋子 -->
+                <VBox spacing="8">
+                    <Label text="黑方棋子" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+                    <GridPane fx:id="blackPiecesGrid" hgap="8" vgap="8">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="60" prefWidth="60"/>
+                            <ColumnConstraints minWidth="60" prefWidth="60"/>
+                        </columnConstraints>
+
+                        <Button fx:id="blackKingBtn" text="将"
+                                GridPane.columnIndex="0" GridPane.rowIndex="0"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #eceff1; -fx-text-fill: #2c3e50;"/>
+                        <Button fx:id="blackAdvisorBtn" text="士"
+                                GridPane.columnIndex="1" GridPane.rowIndex="0"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #eceff1; -fx-text-fill: #2c3e50;"/>
+                        <Button fx:id="blackBishopBtn" text="象"
+                                GridPane.columnIndex="0" GridPane.rowIndex="1"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #eceff1; -fx-text-fill: #2c3e50;"/>
+                        <Button fx:id="blackKnightBtn" text="马"
+                                GridPane.columnIndex="1" GridPane.rowIndex="1"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #eceff1; -fx-text-fill: #2c3e50;"/>
+                        <Button fx:id="blackRookBtn" text="车"
+                                GridPane.columnIndex="0" GridPane.rowIndex="2"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #eceff1; -fx-text-fill: #2c3e50;"/>
+                        <Button fx:id="blackCannonBtn" text="砲"
+                                GridPane.columnIndex="1" GridPane.rowIndex="2"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #eceff1; -fx-text-fill: #2c3e50;"/>
+                        <Button fx:id="blackPawnBtn" text="卒"
+                                GridPane.columnIndex="0" GridPane.rowIndex="3"
+                                prefWidth="60" prefHeight="60"
+                                style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-background-color: #eceff1; -fx-text-fill: #2c3e50;"/>
+                    </GridPane>
+                </VBox>
+
+                <!-- 橡皮擦功能 -->
+                <VBox spacing="8">
+                    <Label text="工具" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                    <Button fx:id="eraserBtn" text="橡皮擦"
+                            prefWidth="128" prefHeight="50"
+                            style="-fx-font-size: 16px; -fx-background-color: #fafafa; -fx-border-color: #ccc;"/>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </left>
+
+    <!-- 中央：棋盘 Canvas -->
+    <center>
+        <VBox alignment="CENTER" style="-fx-background-color: #fafafa; -fx-padding: 20;">
+            <Canvas fx:id="boardCanvas" width="540" height="600"
+                    onMousePressed="#onBoardMousePressed"
+                    onMouseReleased="#onBoardMouseReleased"
+                    onMouseClicked="#onBoardClicked"/>
+        </VBox>
+    </center>
+
+    <!-- 底部：工具栏 -->
+    <bottom>
+        <HBox spacing="15" alignment="CENTER" style="-fx-background-color: #f5f5f5; -fx-padding: 15;">
+            <Button fx:id="clearBtn" text="清空棋盘"
+                    prefWidth="120" prefHeight="40"
+                    style="-fx-font-size: 14px; -fx-background-color: #ff6b6b; -fx-text-fill: white;"/>
+            <Button fx:id="resetBtn" text="初始局面"
+                    prefWidth="120" prefHeight="40"
+                    style="-fx-font-size: 14px; -fx-background-color: #4ecdc4; -fx-text-fill: white;"/>
+            <Button fx:id="confirmBtn" text="确定"
+                    prefWidth="120" prefHeight="40"
+                    style="-fx-font-size: 14px; -fx-background-color: #51cf66; -fx-text-fill: white;"/>
+            <Button fx:id="cancelBtn" text="取消"
+                    prefWidth="120" prefHeight="40"
+                    style="-fx-font-size: 14px; -fx-background-color: #868e96; -fx-text-fill: white;"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

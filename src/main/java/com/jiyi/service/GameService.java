@@ -29,6 +29,8 @@ public class GameService {
     private GameStatus status = GameStatus.IDLE;
     private final List<Board> boardHistory = new ArrayList<>();
     private final List<Move> moveHistory = new ArrayList<>();
+    /** 本局起始局面：startNewGame=标准开局，loadFen=加载的 FEN 局面（供 getFullHistory 起算） */
+    private Board historyBaseBoard = Board.STANDARD;
 
     public record BoardState(Board board, Move move, boolean isRed) {}
 
@@ -44,27 +46,47 @@ public class GameService {
     }
 
     public void startNewGame() {
-        currentBoard = Board.STANDARD;
-        redToGo = true;
-        status = GameStatus.PLAYING;
-        boardHistory.clear();
-        moveHistory.clear();
+        synchronized (this) {
+            currentBoard = Board.STANDARD;
+            historyBaseBoard = Board.STANDARD;
+            redToGo = true;
+            status = GameStatus.PLAYING;
+            boardHistory.clear();
+            moveHistory.clear();
+        }
         eventBus.post(new GameEvent.GameStarted(currentBoard));
         log.info("New game started");
     }
 
     public void loadFen(String fen) {
-        currentBoard = Board.fromFen(fen);
-        String fenPart = fen.split(" ")[0];
-        redToGo = fen.contains(" w ") || (!fen.contains(" b "));
-        status = GameStatus.PLAYING;
-        boardHistory.clear();
-        moveHistory.clear();
+        synchronized (this) {
+            currentBoard = Board.fromFen(fen);
+            historyBaseBoard = currentBoard;
+            // 行棋方：FEN 第 2 段 "w"/"b"，缺失默认红先（不再用 contains(" b ") 误判）
+            String[] parts = fen.trim().split("\\s+");
+            redToGo = parts.length < 2 || !"b".equals(parts[1]);
+            status = GameStatus.PLAYING;
+            boardHistory.clear();
+            moveHistory.clear();
+        }
         eventBus.post(new GameEvent.GameStarted(currentBoard));
         log.info("Loaded FEN: {}", fen);
     }
 
-    public boolean executeMove(Move move) {
+    /**
+     * 连线模式局面同步：仅更新当前局面与行棋方，不清历史、不发 GameStarted。
+     * （loadFen 每步清空棋谱并重置 UI，连线同步应走此方法——对手每步只更新局面）
+     */
+    public void syncBoard(Board board, boolean redToGo) {
+        synchronized (this) {
+            currentBoard = board;
+            this.redToGo = redToGo;
+            status = GameStatus.PLAYING;
+        }
+        eventBus.post(new GameEvent.BoardChanged(board));
+    }
+
+    public synchronized boolean executeMove(Move move) {
         if (status != GameStatus.PLAYING) {
             log.warn("Cannot move: game not playing");
             return false;
@@ -90,15 +112,12 @@ public class GameService {
         manualService.addMoveFromGameService(move);
         eventBus.post(new GameEvent.MoveExecuted(currentBoard, move, redToGo));
 
-        if (mateDetector.isCheckmate(currentBoard, !redToGo)) {
+        if (mateDetector.isNoLegalMove(currentBoard, !redToGo)) {
+            // 被将军=将死；未被将军=困毙。中国象棋规则下无子可动即负，均判对方胜
             status = redToGo ? GameStatus.RED_WIN : GameStatus.BLACK_WIN;
             eventBus.post(new GameEvent.GameEnded(currentBoard,
                 redToGo ? "红胜" : "黑胜"));
-            log.info("Checkmate! {} wins", redToGo ? "Red" : "Black");
-        } else if (mateDetector.isStalemate(currentBoard, !redToGo)) {
-            status = GameStatus.DRAW;
-            eventBus.post(new GameEvent.GameEnded(currentBoard, "和棋"));
-            log.info("Stalemate! Draw");
+            log.info("Game over (checkmate or stalemate)! {} wins", redToGo ? "Red" : "Black");
         }
 
         redToGo = !redToGo;
@@ -107,36 +126,41 @@ public class GameService {
         return true;
     }
 
-    public void undo() {
-        if (boardHistory.isEmpty()) return;
+    public synchronized void undo() {
+        if (boardHistory.isEmpty()) {
+            log.warn("Cannot undo: no history available");
+            return;
+        }
         currentBoard = boardHistory.removeLast();
         moveHistory.removeLast();
+        // 同步撤销棋谱记录，避免 undo 后棋谱与实际局面不一致
+        manualService.removeLastMoveFromGameService();
         redToGo = !redToGo;
         status = GameStatus.PLAYING;
         eventBus.post(new GameEvent.UndoExecuted(currentBoard));
         eventBus.post(new GameEvent.SideSwitched(redToGo));
     }
 
-    public Board getCurrentBoard() { return currentBoard; }
-    public boolean isRedToGo() { return redToGo; }
-    public GameStatus getStatus() { return status; }
-    public List<Move> getMoveHistory() { return List.copyOf(moveHistory); }
-    public List<Board> getBoardHistory() { return List.copyOf(boardHistory); }
+    public synchronized Board getCurrentBoard() { return currentBoard; }
+    public synchronized boolean isRedToGo() { return redToGo; }
+    public synchronized GameStatus getStatus() { return status; }
+    public synchronized List<Move> getMoveHistory() { return List.copyOf(moveHistory); }
+    public synchronized List<Board> getBoardHistory() { return List.copyOf(boardHistory); }
     public ManualService getManualService() { return manualService; }
 
-    public Board getBoardAtMove(int moveIndex) {
+    public synchronized Board getBoardAtMove(int moveIndex) {
         if (moveIndex < 0 || moveIndex >= moveHistory.size()) return currentBoard;
-        Board b = boardHistory.get(0); // initial board before first move
+        Board b = historyBaseBoard;
         for (int i = 0; i <= moveIndex && i < moveHistory.size(); i++) {
             b = b.apply(moveHistory.get(i));
         }
         return b;
     }
 
-    public List<BoardState> getFullHistory() {
+    public synchronized List<BoardState> getFullHistory() {
         var states = new ArrayList<BoardState>();
-        Board b = boardHistory.isEmpty() ? Board.STANDARD : boardHistory.get(0);
-        boolean isRed = true;
+        Board b = historyBaseBoard;
+        boolean isRed = redToGo; // 起始走棋方
         for (int i = 0; i < moveHistory.size(); i++) {
             b = b.apply(moveHistory.get(i));
             states.add(new BoardState(b, moveHistory.get(i), isRed));

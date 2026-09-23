@@ -30,9 +30,15 @@ public class BookService {
     private void initLocalBooks() {
         for (String path : config.book().files()) {
             try {
-                if (path.endsWith(".obk")) {
+                String lower = path.toLowerCase();
+                if (lower.endsWith(".obk")) {
                     localBooks.add(new BhOpenBook(path));
-                    log.info("Loaded book: {}", path);
+                    log.info("Loaded OBK book: {}", path);
+                } else if (lower.endsWith(".pfbook")) {
+                    localBooks.add(new PfOpenBook(path));
+                    log.info("Loaded PF book: {}", path);
+                } else {
+                    log.warn("Unsupported book format (skipped): {}", path);
                 }
             } catch (Exception e) {
                 log.warn("Failed to load book: {}", path, e);
@@ -40,8 +46,28 @@ public class BookService {
         }
     }
 
-    public String queryBestMove(Board board, boolean redGo, int offManualSteps) {
-        var strategy = BookSelector.Strategy.valueOf(config.book().moveRule());
+    /**
+     * 查询库招。
+     * @param moveCount 当前已走步数（用于脱谱判定：达到 offManualSteps 后不再查库，回退引擎）
+     */
+    public String queryBestMove(Board board, boolean redGo, int moveCount) {
+        // ★ 脱谱步数（对齐 C++ bookDepth）：已走步数 >= offManualSteps 后不再查库，回退引擎分析
+        int offManualSteps = config.book().offManualSteps();
+        if (offManualSteps >= 0 && moveCount >= offManualSteps) {
+            log.debug("Off-manual steps reached ({}>={}), falling back to engine", moveCount, offManualSteps);
+            return null;
+        }
+
+        BookSelector.Strategy strategy;
+        try {
+            strategy = BookSelector.Strategy.valueOf(config.book().moveRule());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid moveRule '{}', falling back to BEST_SCORE", config.book().moveRule());
+            strategy = BookSelector.Strategy.BEST_SCORE;
+        }
+
+        // 库招延迟（防检测）：范围内随机等待
+        applyBookDelay();
 
         if (config.book().localFirst()) {
             for (var book : localBooks) {
@@ -68,6 +94,21 @@ public class BookService {
         }
 
         return null;
+    }
+
+    private void applyBookDelay() {
+        int start = config.book().bookDelayStartMs();
+        int end = config.book().bookDelayEndMs();
+        if (end > start && start >= 0) {
+            int delay = start + (int) (Math.random() * (end - start));
+            if (delay > 0) {
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
     }
 
     public void close() {

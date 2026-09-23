@@ -75,19 +75,30 @@ public class ChineseTranslator {
         if (piece == 'P' || piece == 'p') {
             List<int[]> allPawns = new ArrayList<>(samePieces);
             allPawns.add(new int[]{move.fromRow(), move.fromCol()});
-            allPawns.sort((a, b) -> isRed ? Integer.compare(b[0], a[0]) : Integer.compare(a[0], b[0]));
-            int index = allPawns.indexOf(new int[]{move.fromRow(), move.fromCol()});
-            if (isRed) {
-                return new String[]{"", "前", "二", "三", "四", "五"}[index + 1];
-            } else {
-                return new String[]{"", "前", "二", "三", "四", "五"}[allPawns.size() - index];
+            if (allPawns.size() == 2) {
+                // 两兵同列：红方 row 小=前、row 大=后；黑方 row 大=前、row 小=后（与 TCHESS 一致）
+                int[] other = allPawns.get(0)[0] == move.fromRow() && allPawns.get(0)[1] == move.fromCol()
+                    ? allPawns.get(1) : allPawns.get(0);
+                boolean movingIsFront = isRed ? move.fromRow() < other[0] : move.fromRow() > other[0];
+                return movingIsFront ? "前" : "后";
             }
+            // ≥3 兵同列：数字编号。红方 row 升序（row 小=一）→ 一、二、三…；
+            // 黑方 row 降序（row 大=1）→ 1、2、3…（与 TCHESS getSameFilePrefix 一致）
+            allPawns.sort((a, b) -> isRed ? Integer.compare(a[0], b[0]) : Integer.compare(b[0], a[0]));
+            int index = 0;
+            for (int i = 0; i < allPawns.size(); i++) {
+                if (allPawns.get(i)[0] == move.fromRow() && allPawns.get(i)[1] == move.fromCol()) {
+                    index = i;
+                    break;
+                }
+            }
+            return isRed ? RED_NUMS[index] : BLACK_NUMS[index];
         }
 
         int fromRow = move.fromRow();
         for (int[] sp : samePieces) {
             if (sp[1] == move.fromCol()) {
-                boolean movingPieceIsFront = isRed ? fromRow > sp[0] : fromRow < sp[0];
+                boolean movingPieceIsFront = isRed ? fromRow < sp[0] : fromRow > sp[0];
                 return movingPieceIsFront ? "前" : "后";
             }
         }

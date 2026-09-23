@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.jiyi.ui.controller.LinkSettingController"
+      spacing="15">
+
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="连线设置" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+    <!-- 扫描间隔 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="扫描间隔 (ms):" minWidth="130"/>
+        <Spinner fx:id="scanIntervalSpinner" prefWidth="120" editable="true"/>
+    </HBox>
+
+    <!-- 截图方式 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="截图方式:" minWidth="130"/>
+        <ComboBox fx:id="captureMethodCombo" prefWidth="180"/>
+    </HBox>
+
+    <!-- 后台模式 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="后台模式:" minWidth="130"/>
+        <CheckBox fx:id="backModeCheckBox" text="启用后台截图/点击（无需窗口置前）"/>
+    </HBox>
+
+    <!-- 动画确认 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="动画确认:" minWidth="130"/>
+        <CheckBox fx:id="animationCheckBox" text="等待走棋动画完成再操作"/>
+    </HBox>
+
+    <!-- 鼠标移动延迟 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="鼠标移动延迟 (ms):" minWidth="130"/>
+        <Spinner fx:id="mouseMoveDelaySpinner" prefWidth="120" editable="true"/>
+    </HBox>
+
+    <!-- 鼠标点击延迟 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="鼠标点击延迟 (ms):" minWidth="130"/>
+        <Spinner fx:id="mouseClickDelaySpinner" prefWidth="120" editable="true"/>
+    </HBox>
+
+    <!-- 显示信息 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="显示信息:" minWidth="130"/>
+        <CheckBox fx:id="showInfoCheckBox" text="显示连线状态和调试信息"/>
+    </HBox>
+
+    <!-- 调试截图 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="保存调试截图:" minWidth="130"/>
+        <CheckBox fx:id="saveScreenshotCheckBox" text="每3秒保存一帧识别截图到桌面（排查识别问题用）"/>
+    </HBox>
+
+    <!-- 自动续盘（VinXiangQi 方式：标定按钮模板 + 自动点击循环） -->
+    <Label text="自动续盘" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 0 0 0;"/>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="自动点击续盘:" minWidth="130"/>
+        <CheckBox fx:id="autoClickCheckBox" text="对局结束后自动点击标定的按钮（每2秒截图查找）"/>
+    </HBox>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="将死停止:" minWidth="130"/>
+        <CheckBox fx:id="stopWhenMateCheckBox" text="检测到将死局面时停止自动点击"/>
+    </HBox>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="续盘按钮:" minWidth="130"/>
+        <Button fx:id="calibrateButton" text="标定续盘按钮..." onAction="#onCalibrate"/>
+        <Label fx:id="autoclickStatusLabel" text="未标定" style="-fx-text-fill: #888888;"/>
+    </HBox>
+
+    <!-- 检测模型 -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="检测模型:" minWidth="130"/>
+        <TextField fx:id="modelPathField" HBox.hgrow="ALWAYS" promptText="YOLO 模型文件路径 (.onnx)"/>
+        <Button fx:id="browseModelButton" text="浏览..." onAction="#onBrowseModel"/>
+    </HBox>
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button fx:id="reloadModelButton" text="重新加载模型" onAction="#onReloadModel"/>
+    </HBox>
+
+    <!-- 引擎配置（连线模式使用） -->
+    <Label text="引擎配置（连线模式走棋引擎）" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 0 0 0;"/>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="引擎:" minWidth="130"/>
+        <ComboBox fx:id="engineCombo" prefWidth="220" promptText="选择引擎"/>
+    </HBox>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="引擎执色:" minWidth="130"/>
+        <ComboBox fx:id="engineColorCombo" prefWidth="150"/>
+        <Label text="（自动=按外部行棋方判定）" style="-fx-text-fill: #888888;"/>
+    </HBox>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="线程:" minWidth="130"/>
+        <ComboBox fx:id="threadCombo" prefWidth="80" editable="true"/>
+        <Label text="Hash(MB):" style="-fx-padding: 0 0 0 10;"/>
+        <ComboBox fx:id="hashCombo" prefWidth="90" editable="true"/>
+    </HBox>
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="分析模式:" minWidth="130"/>
+        <ComboBox fx:id="analysisModelCombo" prefWidth="100"/>
+        <Label text="值(ms/层):" style="-fx-padding: 0 0 0 10;"/>
+        <TextField fx:id="analysisValueField" prefWidth="80" promptText="值"/>
+    </HBox>
+
+    <Label fx:id="statusLabel" text="准备就绪" style="-fx-text-fill: #666666;"/>
+
+    <!-- 操作按钮 -->
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button fx:id="resetButton" text="重置默认" onAction="#onReset"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="applyButton" text="应用" onAction="#onApply"/>
+        <Button fx:id="confirmButton" text="确定" defaultButton="true" onAction="#onConfirm"/>
+        <Button fx:id="cancelButton" text="取消" cancelButton="true" onAction="#onCancel"/>
+    </HBox>
+
+</VBox>

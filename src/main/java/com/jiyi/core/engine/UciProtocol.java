@@ -29,6 +29,9 @@ public class UciProtocol {
 
     public void setThreads(int n) { setOption("Threads", String.valueOf(n)); }
     public void setHash(int mb) { setOption("Hash", String.valueOf(mb)); }
+    public void setMultiPV(int n) { setOption("MultiPV", String.valueOf(n)); }
+
+    public void newGame() { proc.send("ucinewgame"); }
 
     public void position(Board board, boolean redGo, List<Move> moves) {
         StringBuilder cmd = new StringBuilder("position fen " + board.toFen(redGo));
@@ -49,6 +52,28 @@ public class UciProtocol {
 
     public void goInfinite() {
         proc.send("go infinite");
+    }
+
+    public void goTimeWithSearchMoves(long ms, List<Move> searchMoves) {
+        StringBuilder cmd = new StringBuilder("go movetime " + ms);
+        if (searchMoves != null && !searchMoves.isEmpty()) {
+            cmd.append(" searchmoves");
+            for (Move m : searchMoves) {
+                cmd.append(" ").append(m.toUci());
+            }
+        }
+        proc.send(cmd.toString());
+    }
+
+    public void goDepthWithSearchMoves(int depth, List<Move> searchMoves) {
+        StringBuilder cmd = new StringBuilder("go depth " + depth);
+        if (searchMoves != null && !searchMoves.isEmpty()) {
+            cmd.append(" searchmoves");
+            for (Move m : searchMoves) {
+                cmd.append(" ").append(m.toUci());
+            }
+        }
+        proc.send(cmd.toString());
     }
 
     public void stop() {
@@ -74,39 +99,6 @@ public class UciProtocol {
     }
 
     private EngineOutput parseInfo(String line) {
-        try {
-            int depth = 0, score = 0, mate = 0, pv = 1;
-            long time = 0, nps = 0;
-            boolean isMate = false;
-
-            String[] tokens = line.split("\\s+");
-            for (int i = 0; i < tokens.length; i++) {
-                switch (tokens[i]) {
-                    case "depth" -> { if (++i < tokens.length) depth = Integer.parseInt(tokens[i]); }
-                    case "score" -> {
-                        if (++i >= tokens.length) break;
-                        if ("cp".equals(tokens[i]) && ++i < tokens.length) {
-                            score = Integer.parseInt(tokens[i]);
-                        } else if ("mate".equals(tokens[i]) && ++i < tokens.length) {
-                            isMate = true;
-                            mate = Integer.parseInt(tokens[i]);
-                            score = mate;
-                        }
-                    }
-                    case "time" -> { if (++i < tokens.length) time = Long.parseLong(tokens[i]); }
-                    case "nps" -> { if (++i < tokens.length) nps = Long.parseLong(tokens[i]); }
-                    case "multipv" -> { if (++i < tokens.length) pv = Integer.parseInt(tokens[i]); }
-                    case "pv" -> {
-                        StringBuilder sb = new StringBuilder();
-                        for (int j = i + 1; j < tokens.length; j++) sb.append(tokens[j]).append(" ");
-                        return new EngineOutput.ThinkingData(depth, score, isMate, time, nps, pv, sb.toString().trim());
-                    }
-                }
-            }
-            return new EngineOutput.ThinkingData(depth, score, isMate, time, nps, pv, "");
-        } catch (Exception e) {
-            log.debug("Failed to parse engine output: {}", line, e);
-            return null;
-        }
+        return EngineOutputParser.parseInfo(line);
     }
 }

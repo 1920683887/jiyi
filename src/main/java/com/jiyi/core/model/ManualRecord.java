@@ -13,6 +13,11 @@ public class ManualRecord {
     private int round;
     private final List<RecordNode> mainLine = new ArrayList<>();
     private String remark = "";
+    /** 本棋谱的起始局面 FEN（PGN [FEN] 头用；空则视为标准开局） */
+    private String startFen = "";
+
+    public String startFen() { return startFen; }
+    public void setStartFen(String v) { startFen = v; }
 
     public String eventName() { return eventName; }
     public void setEventName(String v) { eventName = v; }
@@ -34,6 +39,16 @@ public class ManualRecord {
 
     public void addMove(String moveUci, String chineseMove, String remark) {
         mainLine.add(new RecordNode(moveUci, chineseMove, remark));
+    }
+
+    /** 在指定索引插入一着（浏览到中间步续走时截断其后分支） */
+    public void insertMove(int index, String moveUci, String chineseMove, String remark) {
+        if (index < 0 || index > mainLine.size()) return;
+        mainLine.add(index, new RecordNode(moveUci, chineseMove, remark));
+        // 截断被插入点之后的旧主线（新着之后的旧着作废）
+        if (index + 1 < mainLine.size()) {
+            mainLine.subList(index + 1, mainLine.size()).clear();
+        }
     }
 
     public static class RecordNode {

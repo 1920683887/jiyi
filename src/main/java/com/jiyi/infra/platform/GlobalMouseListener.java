@@ -1,20 +1,33 @@
 package com.jiyi.infra.platform;
 
-import com.github.kwhat.jnativehook.GlobalScreen;
-import com.github.kwhat.jnativehook.NativeHookException;
-import com.github.kwhat.jnativehook.mouse.NativeMouseEvent;
-import com.github.kwhat.jnativehook.mouse.NativeMouseInputListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jnativehook.GlobalScreen;
+import org.jnativehook.NativeHookException;
+import org.jnativehook.mouse.NativeMouseEvent;
+import org.jnativehook.mouse.NativeMouseInputListener;
 
 import java.util.function.Consumer;
 
-public class GlobalMouseListener implements NativeMouseInputListener, AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(GlobalMouseListener.class);
+public class GlobalMouseListener implements NativeMouseInputListener {
     private final Consumer<NativeMouseEvent> callback;
 
     public GlobalMouseListener(Consumer<NativeMouseEvent> callback) {
         this.callback = callback;
+    }
+
+    public void nativeMouseClicked(NativeMouseEvent e) {
+        callback.accept(e);
+    }
+
+    public void nativeMousePressed(NativeMouseEvent e) {
+    }
+
+    public void nativeMouseReleased(NativeMouseEvent e) {
+    }
+
+    public void nativeMouseMoved(NativeMouseEvent e) {
+    }
+
+    public void nativeMouseDragged(NativeMouseEvent e) {
     }
 
     public void start() throws NativeHookException {
@@ -22,18 +35,8 @@ public class GlobalMouseListener implements NativeMouseInputListener, AutoClosea
         GlobalScreen.addNativeMouseListener(this);
     }
 
-    @Override
-    public void nativeMouseClicked(NativeMouseEvent e) {
-        callback.accept(e);
-    }
-
-    @Override
-    public void close() {
-        try {
-            GlobalScreen.removeNativeMouseListener(this);
-            GlobalScreen.unregisterNativeHook();
-        } catch (NativeHookException e) {
-            log.warn("Failed to unregister native hook", e);
-        }
+    public void stop() throws NativeHookException {
+        GlobalScreen.removeNativeMouseListener(this);
+        GlobalScreen.unregisterNativeHook();
     }
 }

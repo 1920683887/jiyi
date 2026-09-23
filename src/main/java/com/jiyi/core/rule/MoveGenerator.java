@@ -48,6 +48,8 @@ public class MoveGenerator {
         if (tr < 0 || tr >= 10 || tc < 0 || tc >= 9) return;
         char target = board.pieceAt(tr, tc);
         if (target != ' ' && isRed == isRedChar(target)) return;
+        // 中国象棋禁止吃将/帅
+        if (target != ' ' && Character.toLowerCase(target) == 'k') return;
         moves.add(new Move(fr, fc, tr, tc));
     }
 

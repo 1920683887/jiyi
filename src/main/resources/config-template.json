@@ -1,0 +1,42 @@
+{
+  "app": {
+    "windowWidth": 1200,
+    "windowHeight": 720,
+    "language": "zh_CN",
+    "theme": "default",
+    "autoSave": true
+  },
+  "engine": {
+    "defaultEngine": "",
+    "engines": [],
+    "defaultThreads": 4,
+    "defaultHashSize": 128,
+    "thinkingTimeMs": 3000
+  },
+  "detection": {
+    "modelPath": "models/yolo-chess.onnx",
+    "confidenceThreshold": 0.7,
+    "detectionIntervalMs": 1000,
+    "autoClick": false
+  },
+  "book": {
+    "bhBookPath": "data/book.obk",
+    "cloudBookEnabled": true,
+    "cloudBookUrl": "http://www.chessdb.cn/chessdb.php",
+    "preferredSource": "cloud"
+  },
+  "ui": {
+    "showCoordinates": true,
+    "highlightLastMove": true,
+    "pieceTheme": "default",
+    "boardTheme": "wooden",
+    "soundEnabled": true,
+    "animationEnabled": true
+  },
+  "advanced": {
+    "debugMode": false,
+    "logLevel": "INFO",
+    "maxLogFiles": 10,
+    "networkTimeout": 5000
+  }
+}

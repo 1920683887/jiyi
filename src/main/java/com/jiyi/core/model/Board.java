@@ -24,6 +24,11 @@ public record Board(String[] rows) {
     );
 
     public char pieceAt(int row, int col) {
+        if (row < 0 || row >= ROWS || col < 0 || col >= COLS) {
+            throw new IllegalArgumentException(
+                String.format("Invalid position: (%d, %d), must be in range [0-%d, 0-%d]",
+                    row, col, ROWS-1, COLS-1));
+        }
         return rows[row].charAt(col);
     }
 

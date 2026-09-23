@@ -16,4 +16,12 @@ public class MateDetector {
         if (checkDetector.isInCheck(board, isRed)) return false;
         return generator.generateLegal(board, isRed).isEmpty();
     }
+
+    /**
+     * 当前方无任何合法着法（无论是否被将军）。
+     * 中国象棋规则：无子可动即负——被将军时为将死，未被将军时为困毙，结果均为对方胜。
+     */
+    public boolean isNoLegalMove(Board board, boolean isRed) {
+        return generator.generateLegal(board, isRed).isEmpty();
+    }
 }

@@ -72,18 +72,21 @@ public class CheckDetector {
     }
 
     private boolean isAttackedByPawn(Board board, int kr, int kc, boolean isRed) {
-        char enemyPawn = isRed ? 'p' : 'P';
-        int[][] pawnAttacks = isRed
-            ? new int[][]{{-1,0}, {0,-1}, {0,1}}
-            : new int[][]{{1,0}, {0,-1}, {0,1}};
-
-        boolean crossedRiver = isRed ? kr <= 4 : kr >= 5;
-        int[][] attacks = crossedRiver ? pawnAttacks : new int[][]{pawnAttacks[0]};
-
-        for (int[] a : attacks) {
-            int r = kr + a[0], c = kc + a[1];
-            if (r >= 0 && r < 10 && c >= 0 && c < 9 && board.pieceAt(r, c) == enemyPawn)
-                return true;
+        // 兵能攻击将的三个候选相对位置（以被攻击方视角）
+        // isRed=true（红将被攻）：黑兵在红将上/左/右 —— 黑兵前进方向是 row 增大，黑兵在红将上方
+        // isRed=false（黑将被攻）：红兵在黑将下/左/右 —— 红兵前进方向是 row 减小，红兵在黑将下方
+        int[][] offsets = isRed
+            ? new int[][]{{-1, 0}, {0, -1}, {0, 1}}   // 上、左、右
+            : new int[][]{{1, 0}, {0, -1}, {0, 1}};   // 下、左、右
+        for (int[] o : offsets) {
+            int r = kr + o[0], c = kc + o[1];
+            if (r < 0 || r >= 10 || c < 0 || c >= 9) continue;
+            if (board.pieceAt(r, c) != (isRed ? 'p' : 'P')) continue;
+            // 正向攻击（黑兵在红将上方 / 红兵在黑将下方）：随时可攻，无需过河
+            boolean forward = isRed ? (r < kr) : (r > kr);
+            // 横向攻击（兵在将的左右）：兵必须已过河（用兵自身坐标判定）
+            boolean crossed = isRed ? (r >= 5) : (r <= 4);
+            if (forward || crossed) return true;
         }
         return false;
     }

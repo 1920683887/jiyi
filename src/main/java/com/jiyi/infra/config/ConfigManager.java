@@ -19,11 +19,12 @@ public class ConfigManager {
 
     public ConfigManager() {
         mapper = new ObjectMapper();
+        // 旧版 config.json 含未知字段时不崩（B29）
+        mapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
         mapper.setVisibility(PropertyAccessor.GETTER, Visibility.NONE);
         mapper.setVisibility(PropertyAccessor.SETTER, Visibility.NONE);
         mapper.registerModule(new Jdk8Module());
-        mapper.writerWithDefaultPrettyPrinter();
     }
 
     public Config load() {
@@ -33,7 +34,9 @@ public class ConfigManager {
                 log.info("Config loaded from {}", CONFIG_PATH.toAbsolutePath());
                 return config;
             } catch (IOException e) {
-                log.warn("Failed to load config, using defaults", e);
+                // 解析失败：备份损坏文件后用默认值，不再静默覆写（B81）
+                log.warn("Failed to load config, backing up and using defaults", e);
+                backupCorruptFile();
             }
         }
         config = new Config();
@@ -41,12 +44,67 @@ public class ConfigManager {
         return config;
     }
 
-    public void save() {
+    private void backupCorruptFile() {
         try {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(CONFIG_PATH.toFile(), config);
+            var bak = CONFIG_PATH.resolveSibling(
+                "config.json.bak-" + java.time.Instant.now().toString().replace(':', '-').substring(0, 19));
+            Files.copy(CONFIG_PATH, bak);
+            log.warn("Corrupt config backed up to {}", bak.toAbsolutePath());
         } catch (IOException e) {
-            log.error("Failed to save config", e);
+            log.error("Failed to backup corrupt config", e);
         }
+    }
+
+    public void save() {
+        if (config == null) {
+            log.warn("Cannot save null config");
+            return;
+        }
+        try {
+            // 原子写：先写临时文件再替换（B81）
+            Path tmp = CONFIG_PATH.resolveSibling("config.json.tmp");
+            mapper.writerWithDefaultPrettyPrinter().writeValue(tmp.toFile(), config);
+            Files.move(tmp, CONFIG_PATH,
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            log.info("Config saved to {}", CONFIG_PATH.toAbsolutePath());
+        } catch (IOException e) {
+            log.error("Failed to save config to {}", CONFIG_PATH.toAbsolutePath(), e);
+        }
+    }
+
+    /** 单线程写盘 executor（B15：saveAsync 与 stop 的 save 不再并发写坏文件） */
+    private final java.util.concurrent.ExecutorService saveExecutor =
+        java.util.concurrent.Executors.newSingleThreadExecutor();
+
+    public void saveAsync() {
+        saveExecutor.execute(this::save);
+    }
+
+    public boolean reload() {
+        try {
+            if (Files.exists(CONFIG_PATH)) {
+                config = mapper.readValue(CONFIG_PATH.toFile(), Config.class);
+                log.info("Config reloaded from {}", CONFIG_PATH.toAbsolutePath());
+                return true;
+            } else {
+                log.warn("Config file does not exist: {}", CONFIG_PATH.toAbsolutePath());
+                return false;
+            }
+        } catch (IOException e) {
+            log.error("Failed to reload config", e);
+            return false;
+        }
+    }
+
+    public void reset() {
+        config = new Config();
+        save();
+        log.info("Config reset to defaults");
+    }
+
+    public Path getConfigPath() {
+        return CONFIG_PATH.toAbsolutePath();
     }
 
     public Config get() { return config; }

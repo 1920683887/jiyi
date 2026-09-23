@@ -5,7 +5,12 @@ import com.jiyi.infra.platform.Platform;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * 主配置类，包含应用程序的所有配置项
+ * Main configuration class containing all application settings
+ */
 public class Config {
     private AppConfig app = new AppConfig();
     private BoardConfig board = new BoardConfig();
@@ -27,6 +32,32 @@ public class Config {
     public ManualConfig manual() { return manual; }
     public void setManual(ManualConfig manual) { this.manual = manual; }
 
+    /**
+     * 验证配置的有效性
+     * Validate configuration validity
+     */
+    public boolean validate() {
+        return app.validate() && board.validate() && engine.validate()
+            && link.validate() && book.validate() && manual.validate();
+    }
+
+    /**
+     * 重置为默认配置
+     * Reset to default configuration
+     */
+    public void resetToDefaults() {
+        this.app = new AppConfig();
+        this.board = new BoardConfig();
+        this.engine = new EngineConfigList();
+        this.link = new LinkConfig();
+        this.book = new BookConfig();
+        this.manual = new ManualConfig();
+    }
+
+    /**
+     * 应用程序配置
+     * Application configuration
+     */
     public static class AppConfig {
         private String language = "zh-CN";
         private String theme = "default";
@@ -47,8 +78,19 @@ public class Config {
         public void setSplitPosMain(double v) { splitPosMain = v; }
         public boolean topWindow() { return topWindow; }
         public void setTopWindow(boolean v) { topWindow = v; }
+
+        public boolean validate() {
+            return windowWidth > 0 && windowHeight > 0
+                && splitPosMain >= 0 && splitPosMain <= 1
+                && language != null && !language.isEmpty()
+                && theme != null && !theme.isEmpty();
+        }
     }
 
+    /**
+     * 棋盘配置
+     * Board configuration
+     */
     public static class BoardConfig {
         private String style = "default";
         private String size = "autofit";
@@ -66,8 +108,17 @@ public class Config {
         public void setStepSound(boolean v) { stepSound = v; }
         public boolean stepTip() { return stepTip; }
         public void setStepTip(boolean v) { stepTip = v; }
+
+        public boolean validate() {
+            return style != null && !style.isEmpty()
+                && size != null && !size.isEmpty();
+        }
     }
 
+    /**
+     * 引擎配置列表
+     * Engine configuration list
+     */
     public static class EngineConfigList {
         private String defaultEngine = "";
         private List<EngineConfig> list = new ArrayList<>();
@@ -88,15 +139,110 @@ public class Config {
         public void setDelayStartMs(int v) { delayStartMs = v; }
         public int delayEndMs() { return delayEndMs; }
         public void setDelayEndMs(int v) { delayEndMs = v; }
+
+        /**
+         * 根据名称查找引擎配置
+         * Find engine configuration by name
+         */
+        public Optional<EngineConfig> findByName(String name) {
+            return list.stream()
+                .filter(e -> e.name() != null && e.name().equals(name))
+                .findFirst();
+        }
+
+        /**
+         * 获取默认引擎配置
+         * Get default engine configuration
+         */
+        public Optional<EngineConfig> getDefaultEngineConfig() {
+            if (defaultEngine == null || defaultEngine.isEmpty()) {
+                return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+            }
+            return findByName(defaultEngine);
+        }
+
+        /**
+         * 添加引擎配置
+         * Add engine configuration
+         */
+        public void addEngine(EngineConfig config) {
+            if (config != null && config.name() != null) {
+                list.add(config);
+            }
+        }
+
+        /**
+         * 移除引擎配置
+         * Remove engine configuration
+         */
+        public boolean removeEngine(String name) {
+            return list.removeIf(e -> e.name() != null && e.name().equals(name));
+        }
+
+        public boolean validate() {
+            return analysisModel != null && !analysisModel.isEmpty()
+                && analysisValue > 0
+                && delayStartMs >= 0
+                && delayEndMs >= 0
+                && list != null;
+        }
     }
 
+    /**
+     * 联机配置
+     * Link/Connection configuration
+     */
     public static class LinkConfig {
         private long scanIntervalMs = 100;
-        private boolean backMode = true;
+        // ★ 默认值与 config.json 实际值对齐：后台点击默认关（PostMessage 注入部分窗口不响应）、
+        //   点击/移动延迟与文件一致（原 2/0ms 在删配置或重置后行为翻转：后台模式+超快连点）
+        private boolean backMode = false;
         private boolean showInfo = true;
         private boolean animation = true;
-        private int mouseClickDelayMs = 2;
-        private int mouseMoveDelayMs = 0;
+        private int mouseClickDelayMs = 40;
+        private int mouseMoveDelayMs = 20;
+        /** 连线模式下引擎是否执红（默认执黑） */
+        private boolean enginePlaysRed = false;
+        /** 引擎执色：AUTO（首帧按外部行棋方自动判定）/ RED / BLACK（覆盖 enginePlaysRed） */
+        private String engineColor = "AUTO";
+        /** 稳定帧确认数：连续 N 帧识别相同才当作有效局面（对齐 C++ waitForStableBoard，对抗动画中间态/识别抖动） */
+        private int stableConfirmCount = 2;
+        /** YOLO 检测模型路径 */
+        private String modelPath = "./models/yolov11.onnx";
+        /** 截图方式：AUTO / PRINT_WINDOW / ROBOT（默认 ROBOT；AUTO 自动降级链 PrintWindow→Robot；BITBLT 已移除） */
+        private String captureMethod = "ROBOT";
+        /** 调试：保存识别截图到桌面（定位识别问题时开启） */
+        private boolean saveScreenshot = false;
+        /** 自动点击续盘（VinXiangQi AutoClick 方式）：独立循环截图找标定模板，找到即点击） */
+        private boolean autoClick = false;
+        /** 将死停止：检测到将死局面时停止自动点击续盘 */
+        private boolean stopWhenMate = false;
+        /** 续盘按钮模板目录（用户标定的"再来一局"按钮图存放处） */
+        private String autoclickDir = "./autoclick";
+
+        public boolean autoClick() { return autoClick; }
+        public void setAutoClick(boolean v) { autoClick = v; }
+        public boolean stopWhenMate() { return stopWhenMate; }
+        public void setStopWhenMate(boolean v) { stopWhenMate = v; }
+        public String autoclickDir() { return autoclickDir; }
+        public void setAutoclickDir(String v) { autoclickDir = v; }
+
+        public boolean saveScreenshot() { return saveScreenshot; }
+        public void setSaveScreenshot(boolean v) { saveScreenshot = v; }
+
+        public String engineColor() { return engineColor; }
+        public void setEngineColor(String v) { engineColor = v; }
+        public int stableConfirmCount() { return stableConfirmCount; }
+        public void setStableConfirmCount(int v) { stableConfirmCount = Math.max(1, v); }
+
+        public String captureMethod() { return captureMethod; }
+        public void setCaptureMethod(String v) { captureMethod = v; }
+
+        public String modelPath() { return modelPath; }
+        public void setModelPath(String v) { modelPath = v; }
+
+        public boolean enginePlaysRed() { return enginePlaysRed; }
+        public void setEnginePlaysRed(boolean v) { enginePlaysRed = v; }
 
         public long scanIntervalMs() { return scanIntervalMs; }
         public void setScanIntervalMs(long v) { scanIntervalMs = v; }
@@ -110,8 +256,18 @@ public class Config {
         public void setMouseClickDelayMs(int v) { mouseClickDelayMs = v; }
         public int mouseMoveDelayMs() { return mouseMoveDelayMs; }
         public void setMouseMoveDelayMs(int v) { mouseMoveDelayMs = v; }
+
+        public boolean validate() {
+            return scanIntervalMs > 0
+                && mouseClickDelayMs >= 0
+                && mouseMoveDelayMs >= 0;
+        }
     }
 
+    /**
+     * 开局库配置
+     * Opening book configuration
+     */
     public static class BookConfig {
         private List<String> files = new ArrayList<>();
         private boolean localFirst = true;
@@ -121,6 +277,13 @@ public class Config {
         private int offManualSteps = 9999;
         private String moveRule = "BEST_SCORE";
         private boolean bookSwitch = true;
+        private int bookDelayStartMs = 0;
+        private int bookDelayEndMs = 0;
+
+        public int bookDelayStartMs() { return bookDelayStartMs; }
+        public void setBookDelayStartMs(int v) { bookDelayStartMs = v; }
+        public int bookDelayEndMs() { return bookDelayEndMs; }
+        public void setBookDelayEndMs(int v) { bookDelayEndMs = v; }
 
         public List<String> files() { return files; }
         public void setFiles(List<String> v) { files = v; }
@@ -138,8 +301,45 @@ public class Config {
         public void setMoveRule(String v) { moveRule = v; }
         public boolean bookSwitch() { return bookSwitch; }
         public void setBookSwitch(boolean v) { bookSwitch = v; }
+
+        /**
+         * 添加开局库文件
+         * Add opening book file
+         */
+        public void addBookFile(String filePath) {
+            if (filePath != null && !filePath.isEmpty() && !files.contains(filePath)) {
+                files.add(filePath);
+            }
+        }
+
+        /**
+         * 移除开局库文件
+         * Remove opening book file
+         */
+        public boolean removeBookFile(String filePath) {
+            return files.remove(filePath);
+        }
+
+        /**
+         * 清空所有开局库文件
+         * Clear all opening book files
+         */
+        public void clearBookFiles() {
+            files.clear();
+        }
+
+        public boolean validate() {
+            return files != null
+                && cloudTimeoutMs > 0
+                && offManualSteps >= 0
+                && moveRule != null && !moveRule.isEmpty();
+        }
     }
 
+    /**
+     * 棋谱配置
+     * Manual/Game record configuration
+     */
     public static class ManualConfig {
         private String path = "./manuals";
         private boolean showChessNotation = false;
@@ -151,5 +351,9 @@ public class Config {
         public void setShowChessNotation(boolean v) { showChessNotation = v; }
         public boolean manualTip() { return manualTip; }
         public void setManualTip(boolean v) { manualTip = v; }
+
+        public boolean validate() {
+            return path != null && !path.isEmpty();
+        }
     }
 }

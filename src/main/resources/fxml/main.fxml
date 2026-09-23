@@ -5,7 +5,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane fx:id="root" prefHeight="720.0" prefWidth="1200.0"
+<BorderPane fx:id="root" prefHeight="580.0" prefWidth="860.0"
             xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.jiyi.ui.controller.MainController">
 
@@ -59,37 +59,41 @@
     <!-- 主内容区域 -->
     <center>
         <BorderPane>
-            <!-- 工具栏 -->
+            <!-- 工具栏（横向滚动：窗口缩小时按钮不丢失，可滚动访问） -->
             <top>
-                <ToolBar prefHeight="35.0">
-                    <Button text="新局" onAction="#newGame" />
-                    <Button text="悔棋" onAction="#undoGame" />
-                    <Button fx:id="flipButton" text="翻转" onAction="#flipBoard" />
-                    <Separator orientation="VERTICAL" />
-                    <Button text="复制" onAction="#copyFen" />
-                    <Button text="粘贴" onAction="#pasteFen" />
-                    <Separator orientation="VERTICAL" />
-                    <Button fx:id="engineRedButton" text="引擎红" onAction="#onEngineRed" prefWidth="70.0" />
-                    <Button fx:id="engineBlackButton" text="引擎黑" onAction="#onEngineBlack" prefWidth="70.0" />
-                    <Button fx:id="analysisButton" text="分析" onAction="#onAnalysis" prefWidth="60.0" />
-                    <Separator orientation="VERTICAL" />
-                    <Button fx:id="immediateMoveButton" text="立即出招" onAction="#onImmediateMove" prefWidth="70.0" />
-                    <Button fx:id="alternativeMoveButton" text="变招" onAction="#onAlternativeMove" prefWidth="60.0" />
-                    <Separator orientation="VERTICAL" />
-                    <ToggleButton fx:id="bookSwitchToggle" text="库招" onAction="#onBookSwitch" prefWidth="60.0" selected="true" />
-                    <Button fx:id="linkWindowBtn" text="选窗口" onAction="#onLinkSelectWindow" />
-                    <ComboBox fx:id="linkModeCombo" prefWidth="90.0" promptText="模式" />
-                    <Button fx:id="linkStartBtn" text="连线" onAction="#onLinkStart" disable="true" />
-                    <Button fx:id="linkStopBtn" text="停止" onAction="#onLinkStop" disable="true" />
-                    <Label fx:id="linkStatusLabel" text="未连线" style="-fx-padding: 0 0 0 10;" />
-                </ToolBar>
+                <ScrollPane fitToHeight="true" hbarPolicy="AS_NEEDED" vbarPolicy="NEVER"
+                            styleClass="tool-scroll"
+                            style="-fx-background-color: transparent; -fx-border-width: 0; -fx-padding: 0;">
+                    <ToolBar prefHeight="35.0" style="-fx-background-color: transparent;">
+                        <Button text="新局" onAction="#newGame" />
+                        <Button text="悔棋" onAction="#undoGame" />
+                        <Button fx:id="flipButton" text="翻转" onAction="#flipBoard" />
+                        <Separator orientation="VERTICAL" />
+                        <Button text="复制" onAction="#copyFen" />
+                        <Button text="粘贴" onAction="#pasteFen" />
+                        <Separator orientation="VERTICAL" />
+                        <Button fx:id="engineRedButton" text="引擎红" onAction="#onEngineRed" prefWidth="70.0" />
+                        <Button fx:id="engineBlackButton" text="引擎黑" onAction="#onEngineBlack" prefWidth="70.0" />
+                        <Button fx:id="analysisButton" text="分析" onAction="#onAnalysis" prefWidth="60.0" />
+                        <Separator orientation="VERTICAL" />
+                        <Button fx:id="immediateMoveButton" text="立即出招" onAction="#onImmediateMove" prefWidth="70.0" />
+                        <Button fx:id="alternativeMoveButton" text="变招" onAction="#onAlternativeMove" prefWidth="60.0" />
+                        <Separator orientation="VERTICAL" />
+                        <ToggleButton fx:id="bookSwitchToggle" text="库招" onAction="#onBookSwitch" prefWidth="60.0" selected="true" />
+                        <Button fx:id="linkWindowBtn" text="选窗口" onAction="#onLinkSelectWindow" />
+                        <ComboBox fx:id="linkModeCombo" prefWidth="90.0" promptText="模式" />
+                        <Button fx:id="linkStartBtn" text="连线" onAction="#onLinkStart" disable="true" />
+                        <Button fx:id="linkStopBtn" text="停止" onAction="#onLinkStop" disable="true" />
+                        <Label fx:id="linkStatusLabel" text="未连线" style="-fx-padding: 0 0 0 10;" />
+                    </ToolBar>
+                </ScrollPane>
             </top>
 
             <!-- 中央分割面板 -->
             <center>
                 <SplitPane fx:id="splitPane" dividerPositions="0.62">
                     <!-- 左侧：棋盘区域 -->
-                    <AnchorPane minWidth="400.0" prefWidth="600.0">
+                    <AnchorPane minWidth="300.0" prefWidth="600.0">
                         <Canvas fx:id="boardCanvas" width="600.0" height="650.0"
                                 onMouseClicked="#onCanvasClicked"
                                 AnchorPane.topAnchor="5.0"
@@ -99,7 +103,7 @@
                     </AnchorPane>
 
                     <!-- 右侧：引擎输出和棋谱区域 -->
-                    <AnchorPane minWidth="400.0" prefWidth="550.0">
+                    <AnchorPane minWidth="280.0" prefWidth="550.0">
                         <SplitPane orientation="VERTICAL" dividerPositions="0.55"
                                    AnchorPane.topAnchor="0.0"
                                    AnchorPane.bottomAnchor="0.0"
@@ -107,24 +111,28 @@
                                    AnchorPane.rightAnchor="0.0">
 
                             <!-- 上方：引擎输出 -->
-                            <AnchorPane minHeight="200.0">
+                            <AnchorPane minHeight="120.0">
                                 <BorderPane AnchorPane.topAnchor="0.0"
                                            AnchorPane.bottomAnchor="0.0"
                                            AnchorPane.leftAnchor="0.0"
                                            AnchorPane.rightAnchor="0.0">
                                     <top>
-                                        <ToolBar prefHeight="32.0">
-                                            <Label text="引擎:" style="-fx-font-weight: bold;" />
-                                            <ComboBox fx:id="engineCombo" prefWidth="100.0" promptText="选择引擎" />
-                                            <Label text="线程:" style="-fx-padding: 0 0 0 5;" />
-                                            <ComboBox fx:id="threadCombo" prefWidth="60.0" />
-                                            <Label text="Hash:" style="-fx-padding: 0 0 0 5;" />
-                                            <ComboBox fx:id="hashCombo" prefWidth="70.0" />
-                                            <Label text="MB" />
-                                            <Separator orientation="VERTICAL" />
-                                            <ComboBox fx:id="analysisModelCombo" prefWidth="85.0" />
-                                            <TextField fx:id="analysisValueField" prefWidth="60.0" promptText="值" />
-                                        </ToolBar>
+                                        <ScrollPane fitToHeight="true" hbarPolicy="AS_NEEDED" vbarPolicy="NEVER"
+                                                    styleClass="tool-scroll"
+                                                    style="-fx-background-color: transparent; -fx-border-width: 0; -fx-padding: 0;">
+                                            <ToolBar prefHeight="32.0" style="-fx-background-color: transparent;">
+                                                <Label text="引擎:" style="-fx-font-weight: bold;" />
+                                                <ComboBox fx:id="engineCombo" prefWidth="100.0" promptText="选择引擎" />
+                                                <Label text="线程:" style="-fx-padding: 0 0 0 5;" />
+                                                <ComboBox fx:id="threadCombo" prefWidth="60.0" />
+                                                <Label text="Hash:" style="-fx-padding: 0 0 0 5;" />
+                                                <ComboBox fx:id="hashCombo" prefWidth="70.0" />
+                                                <Label text="MB" />
+                                                <Separator orientation="VERTICAL" />
+                                                <ComboBox fx:id="analysisModelCombo" prefWidth="85.0" />
+                                                <TextField fx:id="analysisValueField" prefWidth="60.0" promptText="值" />
+                                            </ToolBar>
+                                        </ScrollPane>
                                     </top>
                                     <center>
                                         <ListView fx:id="engineOutput" style="-fx-font-family: 'Consolas', monospace;" />
@@ -133,7 +141,7 @@
                             </AnchorPane>
 
                             <!-- 下方：库招和棋谱标签页 -->
-                            <AnchorPane minHeight="200.0">
+                            <AnchorPane minHeight="120.0">
                                 <TabPane tabClosingPolicy="UNAVAILABLE"
                                         AnchorPane.topAnchor="0.0"
                                         AnchorPane.bottomAnchor="0.0"

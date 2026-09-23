@@ -1,0 +1,48 @@
+{
+  "app": {
+    "language": "zh-CN",
+    "theme": "default",
+    "windowWidth": 1169.0,
+    "windowHeight": 712.0,
+    "splitPosMain": 0.642,
+    "topWindow": false
+  },
+  "board": {
+    "style": "default",
+    "size": "autofit",
+    "showNumbers": true,
+    "stepSound": true,
+    "stepTip": true
+  },
+  "engine": {
+    "defaultEngine": "",
+    "list": [],
+    "analysisModel": "FIXED_TIME",
+    "analysisValue": 5000,
+    "delayStartMs": 0,
+    "delayEndMs": 0
+  },
+  "link": {
+    "scanIntervalMs": 100,
+    "backMode": true,
+    "showInfo": true,
+    "animation": true,
+    "mouseClickDelayMs": 2,
+    "mouseMoveDelayMs": 0
+  },
+  "book": {
+    "files": [],
+    "localFirst": true,
+    "cloudEnabled": true,
+    "cloudTimeoutMs": 2000,
+    "onlyCloudFinalPhase": false,
+    "offManualSteps": 9999,
+    "moveRule": "BEST_SCORE",
+    "bookSwitch": true
+  },
+  "manual": {
+    "path": "./manuals",
+    "showChessNotation": false,
+    "manualTip": true
+  }
+}

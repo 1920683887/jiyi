@@ -164,17 +164,38 @@ public class MainController {
     private boolean currentIsRed;
     private volatile boolean engineThinking;
     private String engineSide = ""; // "red", "black", ""
+    /** 连线启动时是否由程序自启引擎（停止连线时仅停自启引擎，不杀用户已有的） */
+    private boolean linkStartedEngine = false;
     private boolean initialized;
     private boolean showStepNumbers = false;
+
+    /** 已注册的订阅（用于清理，防 FXML 二次加载重复注册——B28） */
+    private final java.util.List<Runnable> registeredSubscriptions = new java.util.ArrayList<>();
+
+    /** 注销全部订阅（App.stop / 二次初始化前调用） */
+    public void shutdown() {
+        for (var unreg : registeredSubscriptions) {
+            try { unreg.run(); } catch (Exception ignored) {}
+        }
+        registeredSubscriptions.clear();
+    }
+
+    /** 注册并记录可清理句柄 */
+    private <T> void registerOnce(Class<T> type, java.util.function.Consumer<T> handler, EventBus.Dispatch dispatch) {
+        eventBus.register(type, handler, dispatch);
+        registeredSubscriptions.add(() -> eventBus.unregister(type, handler));
+    }
 
     @FXML
     public void initialize() {
         // Prevent double initialization (called by FXMLLoader AND by App.start)
         if (initialized) return;
         initialized = true;
+        // 清理旧订阅，防重复注册
+        shutdown();
 
-        eventBus.register(GameEvent.MoveExecuted.class, this::onMoveExecuted, EventBus.Dispatch.PLATFORM);
-        eventBus.register(GameEvent.GameStarted.class, e -> {
+        registerOnce(GameEvent.MoveExecuted.class, this::onMoveExecuted, EventBus.Dispatch.PLATFORM);
+        registerOnce(GameEvent.GameStarted.class, e -> {
             recordTable.getItems().clear();
             lastMove = null; selectedRow = -1;
             redrawBoard(e.board());
@@ -184,20 +205,20 @@ public class MainController {
                 trendChartView.clear();
             }
         }, EventBus.Dispatch.PLATFORM);
-        eventBus.register(GameEvent.BoardChanged.class, e -> {
+        registerOnce(GameEvent.BoardChanged.class, e -> {
             redrawBoard(e.board());
         }, EventBus.Dispatch.PLATFORM);
         eventBus.register(GameEvent.UndoExecuted.class, e -> {
             redrawBoard(e.board());
-            recordTable.getItems().remove(recordTable.getItems().size() - 1);
+            rebuildRecordTable();
         }, EventBus.Dispatch.PLATFORM);
-        eventBus.register(GameEvent.SideSwitched.class, e -> {
+        registerOnce(GameEvent.SideSwitched.class, e -> {
             turnLabel.setText(e.redToGo() ? "红方走棋" : "黑方走棋");
         }, EventBus.Dispatch.PLATFORM);
-        eventBus.register(GameEvent.GameEnded.class, e -> {
+        registerOnce(GameEvent.GameEnded.class, e -> {
             statusLabel.setText("对局结束: " + e.result());
         }, EventBus.Dispatch.PLATFORM);
-        eventBus.register(EngineEvent.ThinkingUpdate.class, e -> {
+        registerOnce(EngineEvent.ThinkingUpdate.class, e -> {
             var d = e.data();
             String line = String.format("d%d %s %s %s",
                 d.depth(), d.isMate() ? "M" + Math.abs(d.score()) : String.valueOf(d.score()),
@@ -213,17 +234,36 @@ public class MainController {
                 trendChartView.addScore(recordTable.getItems().size(), d.score(), currentIsRed);
             }
         }, EventBus.Dispatch.PLATFORM);
-        eventBus.register(EngineEvent.EngineStarted.class, e -> {
+        registerOnce(EngineEvent.EngineStarted.class, e -> {
             statusLabel.setText("引擎已启动: " + e.name());
         }, EventBus.Dispatch.PLATFORM);
-        eventBus.register(EngineEvent.EngineStopped.class, e -> {
+        registerOnce(EngineEvent.EngineStopped.class, e -> {
             engineThinking = false;
             statusLabel.setText("引擎已停止: " + e.name());
+            // 引擎退出（含崩溃，崩溃由 EngineService onExit 回调发此事件）后：
+            // 连线中重同步局面基准，等引擎恢复后重新对接（对齐 C++ disconnected → 复位连线状态）
+            if (automationService.isEnabled()) {
+                automationService.reset();
+            }
         }, EventBus.Dispatch.PLATFORM);
-        eventBus.register(EngineEvent.BestMove.class, e -> {
+        registerOnce(EngineEvent.BestMove.class, e -> {
             engineThinking = false;
-            if (e.move() != null && isEngineTurn()) {
-                gameService.executeMove(e.move());
+            // 连线模式用 AutomationService 实时执色判定（首帧 AUTO 可能覆盖 startLink 的 engineSide）；
+            // 手动模式用 engineSide 门禁
+            boolean engineTurn = e.move() != null && (automationService.isEnabled()
+                ? automationService.isEngineTurnNow() : isEngineTurn());
+            log.info("BestMove event: move={}, engineTurn={}, engineSide={}, redToGo={}",
+                e.move() == null ? "null" : e.move().toUci(), engineTurn, engineSide, gameService.isRedToGo());
+            if (e.move() != null && engineTurn) {
+                if (automationService.isEnabled()) {
+                    // 连线模式：登记引擎着法，由检测线程统一执行点击+局面推进
+                    // （对齐 C++ m_engineMoveReady：避免跨线程点击与识别并发导致状态机撕裂）
+                    automationService.supplyEngineMove(e.move());
+                } else {
+                    // 手动模式：直接执行
+                    boolean ok = gameService.executeMove(e.move());
+                    log.info("executeMove({}) result={}", e.move().toUci(), ok);
+                }
             }
         }, EventBus.Dispatch.PLATFORM);
 
@@ -400,6 +440,14 @@ public class MainController {
 
     @FXML
     public void onAnalysis() {
+        // ★ 连线模式路由到空闲分析（对齐 Qt MainWindow:1218-1221）：不触碰自动走子，
+        //   引擎空闲时无限思考，对手走子/引擎该走时自动打断
+        if (automationService.isEnabled()) {
+            boolean on = !automationService.isIdleAnalysis();
+            automationService.setIdleAnalysis(on);
+            analysisButton.setText(on ? "停止" : "分析");
+            return;
+        }
         var cfg = findSelectedEngine();
         if (cfg == null) { statusLabel.setText("请先添加引擎"); return; }
         if (engineService.isRunning()) {
@@ -427,6 +475,8 @@ public class MainController {
         return switch (engineSide) {
             case "red" -> gameService.isRedToGo();
             case "black" -> !gameService.isRedToGo();
+            // 分析模式：引擎持续分析双方，用户走子后必须重新触发分析
+            case "all" -> true;
             default -> false;
         };
     }
@@ -434,7 +484,7 @@ public class MainController {
     @FXML
     public void onLinkSelectWindow() {
         log.info("onLinkSelectWindow called");
-        linkStatusLabel.setText("请点击目标窗口...");
+        linkStatusLabel.setText("请切换到目标窗口（如天天象棋）后点击其棋盘区域，可先最小化本窗口");
 
         try {
             var platform = com.jiyi.di.AppModule.getInjector()
@@ -452,16 +502,21 @@ public class MainController {
 
             wp.startWindowSelection(hwnd -> {
                 log.info("Window selection callback invoked with hwnd: 0x{}", Long.toHexString(hwnd));
-                linkWindowHwnd = hwnd;
 
                 // 必须在 JavaFX 线程中更新 UI
                 javafx.application.Platform.runLater(() -> {
+                    if (hwnd == 0L) {
+                        // 点击了本程序窗口或空白处：提示并允许重试
+                        linkStatusLabel.setText("选择失败：请点击目标窗口（勿点击本程序窗口或空白处）");
+                        linkStartBtn.setDisable(true);
+                        linkWindowBtn.setDisable(false);
+                        return;
+                    }
                     log.info("Updating UI on JavaFX thread");
+                    linkWindowHwnd = hwnd;
                     linkStatusLabel.setText("已选窗口: 0x" + Long.toHexString(hwnd));
-                    linkStartBtn.setDisable(false);
-                    linkWindowBtn.setDisable(true);
-                    statusLabel.setText("窗口选择成功");
-                    log.info("UI updated successfully");
+                    // 一键连线：选窗口成功后直接开始（对齐 TCHESS 鼠标点窗口即连线）
+                    startLink();
                 });
             });
 
@@ -475,28 +530,93 @@ public class MainController {
 
     @FXML
     public void onLinkStart() {
-        if (linkWindowHwnd == 0) return;
+        if (linkWindowHwnd == 0) {
+            linkStatusLabel.setText("请先选择目标窗口");
+            return;
+        }
+        startLink();
+    }
+
+    /** 启动连线（选窗口回调/连线按钮共用入口） */
+    private void startLink() {
+        if (automationService.isEnabled()) {
+            log.warn("Link already running, ignoring start");
+            return;
+        }
+        log.info("Link start: hwnd=0x{}, mode={}", Long.toHexString(linkWindowHwnd), linkModeCombo.getValue());
         if (!detectionService.start(linkWindowHwnd)) {
+            log.warn("Link start failed: detection service not started (model not loaded)");
             linkStatusLabel.setText("检测启动失败（模型未加载）");
             return;
         }
+
+        // 连线模式必须要有引擎：未启动则自动启动（用当前选择的引擎）
+        linkStartedEngine = false;
+        if (!engineService.isRunning()) {
+            var cfg = findSelectedEngine();
+            if (cfg == null) {
+                log.warn("Link start failed: no engine configured");
+                linkStatusLabel.setText("请先在引擎列表添加引擎");
+                detectionService.stop();
+                return;
+            }
+            log.info("Auto-starting engine for link mode: {}", cfg.name());
+            if (!startEngine(cfg)) {
+                log.error("Link start failed: engine could not be started: {}", cfg.path());
+                linkStatusLabel.setText("引擎启动失败，请检查引擎配置");
+                detectionService.stop();
+                return;
+            }
+            linkStartedEngine = true;
+        } else {
+            log.info("Engine already running, reusing for link mode");
+        }
+
         boolean isSpectator = "观战模式".equals(linkModeCombo.getValue());
-        automationService.start(false, isSpectator);
+        // 引擎执色：RED/BLACK 固定；AUTO 用配置默认（执黑），首帧识别后按外部行棋方自动修正
+        boolean engineRed = switch (config.link().engineColor()) {
+            case "RED" -> true;
+            case "BLACK" -> false;
+            default -> config.link().enginePlaysRed();
+        };
+        // ★ 显示翻转对齐我方视角（对齐 C++ MainWindow:876-880 引擎执色→翻转显示）：
+        //   引擎执红 → 我方黑 → 棋盘黑在下显示（isReverse=true）；引擎执黑 → 我方红 → 红在下（标准）
+        isReverse = engineRed;
+        log.info("Link start: engineRed={}, engineColor={}, spectator={}, displayFlipped={}",
+            engineRed, config.link().engineColor(), isSpectator, isReverse);
+        automationService.start(engineRed, isSpectator);
+        // 应用点击/截图相关配置（此前从未接线，后台模式/延迟设置全部失效）
+        automationService.setBackMode(config.link().backMode());
+        automationService.setClickDelay(config.link().mouseClickDelayMs());
+        automationService.setMoveDelay(config.link().mouseMoveDelayMs());
+        engineSide = engineRed ? "red" : "black";
+        // 复位"分析"按钮文案：独立分析模式残留的"停止"不能带进连线（连线中该按钮路由空闲分析）
+        analysisButton.setText("分析");
         linkStartBtn.setDisable(true);
         linkStopBtn.setDisable(false);
         linkWindowBtn.setDisable(true);
-        // 禁用引擎模式切换按钮，防止连线时切换模式
+        // 禁用引擎模式切换按钮，防止连线时切换模式；"分析"按钮保持可用 → 路由空闲分析
         engineRedButton.setDisable(true);
         engineBlackButton.setDisable(true);
-        analysisButton.setDisable(true);
         linkStatusLabel.setText(isSpectator ? "观战模式..." : "连线中...");
         statusLabel.setText(isSpectator ? "观战模式已启动" : "连线模式已启动");
+        // 显示翻转（我方视角）设置后立即重绘棋盘
+        redrawBoard(gameService.getCurrentBoard());
     }
 
     @FXML
     public void onLinkStop() {
         detectionService.stop();
         automationService.stop();
+        // 连线模式由 onLinkStart 设置 engineSide，停止时一并清理引擎与状态（B61）
+        if ("red".equals(engineSide) || "black".equals(engineSide)) {
+            // ★ 仅停本次连线自启的引擎；复用用户已有引擎时保留（避免误杀）
+            if (linkStartedEngine && engineService.isRunning()) {
+                engineService.stopEngine();
+            }
+            linkStartedEngine = false;
+            engineSide = "";
+        }
         linkStartBtn.setDisable(false);
         linkStopBtn.setDisable(true);
         linkWindowBtn.setDisable(false);
@@ -504,6 +624,9 @@ public class MainController {
         engineRedButton.setDisable(false);
         engineBlackButton.setDisable(false);
         analysisButton.setDisable(false);
+        engineRedButton.setText("引擎红");
+        engineBlackButton.setText("引擎黑");
+        analysisButton.setText("分析");
         linkStatusLabel.setText("连线已停止");
         statusLabel.setText("");
     }
@@ -528,7 +651,9 @@ public class MainController {
     private void manualNavigateTo(int index) {
         if (index < 0 || index >= manualService.totalMoves()) return;
         manualService.setCurrentIndex(index);
-        Board b = gameService.getBoardAtMove(index);
+        // ★ 用 ManualService 自身局面历史（PGN 加载后 GameService 无历史，getBoardAtMove 恒返回起点局面）
+        Board b = manualService.getBoardAt(index);
+        if (b == null) return;
         eventBus.post(new GameEvent.BoardChanged(b));
         redrawBoard(b);
         updateManualInfo();
@@ -574,10 +699,11 @@ public class MainController {
     public void onManualDelete() {
         int idx = manualService.currentIndex();
         if (idx < 0 || idx >= manualService.totalMoves()) return;
-        manualService.getRecord().mainLine().remove(idx);
-        if (idx >= manualService.totalMoves()) idx = manualService.totalMoves() - 1;
-        manualService.setCurrentIndex(idx);
+        // ★ 走 ManualService 删除（重建 boardStates 保持主线与局面同步），并重建表格
+        manualService.deleteMoveAt(idx);
         updateManualInfo();
+        rebuildRecordTable();
+        redrawBoard(manualService.getCurrentBoard());
     }
 
     @FXML
@@ -763,7 +889,8 @@ public class MainController {
             v -> onAlternativeMove(),
             v -> onManualDelete(),
             v -> exportImage(),
-            v -> copyImage()
+            v -> copyImage(),
+            v -> pasteFen()
         );
         contextMenu.show(boardCanvas, event.getScreenX(), event.getScreenY());
     }
@@ -836,6 +963,7 @@ public class MainController {
 
             // 获取控制器并传递当前局面
             var controller = (com.jiyi.ui.controller.EditBoardController) loader.getController();
+            controller.setStage(win);
             controller.setBoard(gameService.getCurrentBoard(), gameService.isRedToGo());
 
             win.showAndWait();
@@ -876,14 +1004,36 @@ public class MainController {
     }
 
     @FXML
-    public void newGame() { gameService.startNewGame(); }
+    public void newGame() {
+        // 连线中禁新局：会清空引擎基准局面，导致识别对局错乱
+        if (automationService.isEnabled()) return;
+        gameService.startNewGame();
+        // 引擎模式下新局后按行棋方重启分析（引擎先手立即分析，后手等用户走子触发）
+        if (engineService.isRunning() && isEngineTurn()) {
+            engineThinking = true;
+            engineService.analyze(gameService.getCurrentBoard(), gameService.isRedToGo());
+        }
+    }
 
     @FXML
-    public void undoGame() { gameService.undo(); }
+    public void undoGame() {
+        // 连线中禁悔棋：外部棋盘与内部局面会脱节
+        if (automationService.isEnabled()) return;
+        gameService.undo();
+        // 悔棋后若回到引擎轮，重启分析（走子事件不触发 undo 路径）
+        if (engineService.isRunning() && isEngineTurn()) {
+            engineThinking = true;
+            engineService.analyze(gameService.getCurrentBoard(), gameService.isRedToGo());
+        }
+    }
 
     @FXML
     public void exit() {
+        // 统一清理：检测/连线线程、开局库连接与引擎进程，避免 JVM 挂住与资源泄漏
+        if (automationService.isEnabled()) automationService.stop();
+        detectionService.stop();
         if (engineService.isRunning()) engineService.stopEngine();
+        bookService.close();
         if (stage != null) {
             config.app().setTopWindow(stage.isAlwaysOnTop());
             configManager.saveAsync();
@@ -1049,6 +1199,8 @@ public class MainController {
     @FXML
     public void onCanvasClicked(MouseEvent e) {
         if (engineThinking) return;
+        // 连线模式禁本地走子：会破坏引擎基准局面（外部棋盘由程序控制）
+        if (automationService.isEnabled()) return;
         Board board = gameService.getCurrentBoard();
         if (board == null) return;
         int[] grid = screenToBoard(e.getX(), e.getY());
@@ -1093,10 +1245,48 @@ public class MainController {
         turnLabel.setText(event.isRed() ? "黑方走棋" : "红方走棋");
         // 更新变招列表
         updateVariationList();
-        if (engineService.isRunning() && isEngineTurn()) {
+        // 连线模式：引擎分析由 applyOpponentMove/首帧同步驱动，MoveExecuted 不再触发
+        // （否则引擎红走完后会误触发黑方分析 → 引擎自己走两步）
+        if (!automationService.isEnabled() && engineService.isRunning() && isEngineTurn()) {
+            // 开局库优先：命中则直接走库招，不启动引擎分析（对齐 C++ bookDepth 库招 callback）
+            if (tryBookMove(event.board())) return;
             engineThinking = true;
             engineService.analyze(event.board(), gameService.isRedToGo());
         }
+    }
+
+    /**
+     * 开局库查招并落子：库招开关开启且未脱谱时查询，命中即走（返回 true）。
+     * 走棋方 = 当前行棋方；moveCount 取棋谱表已记录步数。
+     */
+    private boolean tryBookMove(Board board) {
+        if (!config.book().bookSwitch()) return false;
+        try {
+            String uci = bookService.queryBestMove(board, gameService.isRedToGo(),
+                recordTable.getItems().size());
+            if (uci == null) return false;
+            Move move = Move.fromUci(uci);
+            if (gameService.executeMove(move)) {
+                log.info("Book move played: {}", uci);
+                statusLabel.setText("库招: " + uci);
+                return true;
+            }
+            log.warn("Book move rejected by validator: {}", uci);
+        } catch (Exception e) {
+            log.warn("Book query failed, falling back to engine", e);
+        }
+        return false;
+    }
+
+    /** 从 manualService 重建棋谱表（undo 后保证行数与记录一致） */
+    private void rebuildRecordTable() {
+        recordTable.getItems().clear();
+        var moves = manualService.getMoveList();
+        for (int i = 0; i < moves.size(); i++) {
+            recordTable.getItems().add(new MoveRow(i + 1, moves.get(i), ""));
+        }
+        updateManualInfo();
+        updateVariationList();
     }
 
     private int[] screenToBoard(double x, double y) {
@@ -1238,6 +1428,12 @@ public class MainController {
 
     private void redrawBoard(Board board) {
         if (board == null) return;
+        // ★ 连线时显示跟随外部识别视角（对齐 C++ engineColorAutoDetected → UI 翻转）：
+        //   我方执黑（外部黑在下，flipped=true）→ 内部棋盘黑在下显示；执红 → 红在下。
+        //   不依赖执色配置——显示永远与外部（天天象棋）视角一致
+        if (automationService.isEnabled()) {
+            isReverse = automationService.getLastFlipped();
+        }
         GraphicsContext gc = boardCanvas.getGraphicsContext2D();
         drawBoard(gc, board, boardCanvas.getWidth(), boardCanvas.getHeight());
     }

@@ -5,6 +5,11 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.jiyi.core.book.BookSelector;
+import com.jiyi.core.book.ZobristHasher;
+import com.jiyi.core.detection.AutoClicker;
+import com.jiyi.core.detection.BoardComparator;
+import com.jiyi.core.detection.BoardMatcher;
 import com.jiyi.core.event.EventBus;
 import com.jiyi.core.rule.CheckDetector;
 import com.jiyi.core.rule.ChineseTranslator;
@@ -15,6 +20,8 @@ import com.jiyi.infra.config.Config;
 import com.jiyi.infra.config.ConfigManager;
 import com.jiyi.infra.platform.Platform;
 import com.jiyi.infra.platform.WindowsPlatform;
+import com.jiyi.infra.util.SoundPlayer;
+import com.jiyi.infra.util.WinRateCalculator;
 import com.jiyi.service.AutomationService;
 import com.jiyi.service.BookService;
 import com.jiyi.service.DetectionService;
@@ -28,12 +35,29 @@ public class AppModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        // Event System
         bind(EventBus.class).in(Singleton.class);
+
+        // Core Rules
         bind(CheckDetector.class).in(Singleton.class);
         bind(MateDetector.class).in(Singleton.class);
         bind(MoveGenerator.class).in(Singleton.class);
         bind(MoveValidator.class).in(Singleton.class);
         bind(ChineseTranslator.class).in(Singleton.class);
+
+        // Core Detection Components
+        bind(BoardMatcher.class).in(Singleton.class);
+        bind(BoardComparator.class).in(Singleton.class);
+
+        // Core Book Components
+        bind(BookSelector.class).in(Singleton.class);
+        bind(ZobristHasher.class).in(Singleton.class);
+
+        // Utility Components
+        bind(SoundPlayer.class).in(Singleton.class);
+        bind(WinRateCalculator.class).in(Singleton.class);
+
+        // Services
         bind(GameService.class).in(Singleton.class);
         bind(EngineService.class).in(Singleton.class);
         bind(ManualService.class).in(Singleton.class);

@@ -25,6 +25,9 @@ public class UcciProtocol {
 
     public void setThreads(int n) { proc.send("setoption usethreads value " + n); }
     public void setHash(int mb) { proc.send("setoption hashsize value " + mb); }
+    public void setMultiPV(int n) { proc.send("setoption multipv value " + n); }
+
+    public void newGame() { proc.send("newgame"); }
     public void setOption(String name, String value) {
         proc.send("setoption " + name + " value " + value);
     }
@@ -43,7 +46,7 @@ public class UcciProtocol {
     }
 
     public void goTime(long ms) {
-        proc.send("go time " + ms);
+        proc.send("go movetime " + ms);
     }
 
     public void goInfinite() {
@@ -73,42 +76,6 @@ public class UcciProtocol {
     }
 
     private EngineOutput parseInfo(String line) {
-        try {
-            int depth = 0, score = 0, mate = 0, pv = 1;
-            long time = 0, nps = 0;
-            boolean isMate = false;
-
-            String[] tokens = line.split("\\s+");
-            for (int i = 0; i < tokens.length; i++) {
-                switch (tokens[i]) {
-                    case "depth" -> depth = Integer.parseInt(tokens[++i]);
-                    case "score" -> {
-                        ++i; // skip to the sub-token (cp/mate)
-                        if (i >= tokens.length) break;
-                        if ("cp".equals(tokens[i])) {
-                            if (++i < tokens.length) score = Integer.parseInt(tokens[i]);
-                        } else if ("mate".equals(tokens[i])) {
-                            isMate = true;
-                            if (++i < tokens.length) {
-                                mate = Integer.parseInt(tokens[i]);
-                                score = mate;
-                            }
-                        }
-                    }
-                    case "time" -> time = Long.parseLong(tokens[++i]);
-                    case "nps" -> nps = Long.parseLong(tokens[++i]);
-                    case "multipv" -> pv = Integer.parseInt(tokens[++i]);
-                    case "pv" -> {
-                        StringBuilder sb = new StringBuilder();
-                        for (int j = i + 1; j < tokens.length; j++) sb.append(tokens[j]).append(" ");
-                        return new EngineOutput.ThinkingData(depth, score, isMate, time, nps, pv, sb.toString().trim());
-                    }
-                }
-            }
-            return new EngineOutput.ThinkingData(depth, score, isMate, time, nps, pv, "");
-        } catch (Exception e) {
-            log.debug("Failed to parse UCCI output: {}", line, e);
-            return null;
-        }
+        return EngineOutputParser.parseInfo(line);
     }
 }
